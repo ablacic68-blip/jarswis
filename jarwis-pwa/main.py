@@ -21,50 +21,51 @@ def home():
 def jarvis_endpoint(payload: dict):
     user_text = payload.get("text", "")
     
-    api_key = (
+    # 1. OPCIJA: Ako koristiš OpenRouter (za Claude 3.5 Sonnet / Haiku)
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if openrouter_key:
+        try:
+            res = requests.post(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {openrouter_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "anthropic/claude-3.5-sonnet",
+                    "messages": [{"role": "user", "content": user_text}]
+                }
+            )
+            data = res.json()
+            if "choices" in data and len(data["choices"]) > 0:
+                reply = data["choices"][0]["message"]["content"]
+                return {"reply": reply, "model_used": "Claude 3.5 Sonnet"}
+        except Exception:
+            pass
+
+    # 2. OPCIJA: Google Gemini Flash (Besplatno)
+    gemini_key = (
         os.getenv("GEMINI_API_KEY") or 
         os.getenv("GOOGLE_API_KEY") or 
-        os.getenv("API_KEY") or 
-        os.getenv("OPENROUTER_API_KEY")
+        os.getenv("API_KEY")
     )
     
-    if not api_key:
-        return {"reply": "Greška: Nije pronađen API ključ u Render postavama.", "model_used": "Nijedan"}
+    if gemini_key:
+        # Redom isprobava najnovije Flash modele
+        flash_models = ["gemini-2.0-flash", "gemini-1.5-flash"]
         
-    try:
-        # 1. Dohvaćamo točan popis modela koje tvoj ključ smije koristiti
-        list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
-        res_list = requests.get(list_url).json()
-        
-        if "error" in res_list:
-            return {"reply": f"Google API Greška: {res_list['error'].get('message', 'Nepoznato')}", "model_used": "Greška"}
-            
-        # Filtriramo samo modele koji mogu generirati tekst
-        available_models = [
-            m["name"].replace("models/", "") 
-            for m in res_list.get("models", []) 
-            if "generateContent" in m.get("supportedGenerationMethods", [])
-        ]
-        
-        if not available_models:
-            return {"reply": "Greška: Nijedan model nije omogućen za ovaj API ključ. Provjeri je li omogućen Generative Language API u Google Cloud konzoli.", "model_used": "Greška"}
-            
-        # Uzimamo prvi dostupni model s liste (npr. gemini-2.0-flash, gemini-1.5-flash-latest...)
-        chosen_model = available_models[0]
-        
-        # 2. Šaljemo upit tom modelu
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{chosen_model}:generateContent?key={api_key}"
-        headers = {"Content-Type": "application/json"}
-        body = {"contents": [{"parts": [{"text": user_text}]}]}
-        
-        response = requests.post(url, headers=headers, json=body)
-        data = response.json()
-        
-        if "error" in data:
-            return {"reply": f"Greška modela ({chosen_model}): {data['error'].get('message')}", "model_used": chosen_model}
+        for model in flash_models:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
+                headers = {"Content-Type": "application/json"}
+                body = {"contents": [{"parts": [{"text": user_text}]}]}
+                
+                res = requests.post(url, headers=headers, json=body).json()
+                
+                if "candidates" in res and len(res["candidates"]) > 0:
+                    reply = res["candidates"][0]["content"]["parts"][0]["text"]
+                    return {"reply": reply, "model_used": model}
+            except Exception:
+                continue
 
-        reply = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Nema odgovora.")
-        return {"reply": reply, "model_used": chosen_model}
-
-    except Exception as e:
-        return {"reply": f"Greška na serveru: {str(e)}", "model_used": "Greška"}
+    return {"reply": "Greška: Nije pronađen valjani API ključ u Render postavama.", "model_used": "Greška"}
