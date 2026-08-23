@@ -28,31 +28,34 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {"reply": "Greška: Ključ nije postavljen."}
+        return {"reply": "Greška: Ključ nije postavljen u Renderu."}
 
-    # Najbrži Flash modeli poredani po brzini
-    fast_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    # Provjereni i najbrži besplatni modeli
+    fast_models = ["gemini-1.5-flash", "gemini-2.0-flash"]
 
-    # Postavka koja prisiljava model na direktan i brz odgovor bez uvoda
+    # Sistemska uputa za direktan i brz odgovor bez uvodnog teksta
     body = {
         "system_instruction": {
-            "parts": [{"text": "Daj samo izravan odgovor. Nemoj pozdravljati, nemoj ponavljati pitanje i nemoj pisati tko pita."}]
+            "parts": [{"text": "Odgovori izravno, kratko i točno na postavljeno pitanje. Zabranjeno je pozdravljanje, citiranje pitanja i uvodne fraze."}]
         },
         "contents": [{"parts": [{"text": user_text}]}]
     }
     headers = {"Content-Type": "application/json"}
 
+    last_err = ""
     for model in fast_models:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         try:
-            res = requests.post(url, headers=headers, json=body, timeout=5)
-            if res.status_code == 200:
-                data = res.json()
-                candidates = data.get("candidates", [])
-                if candidates:
-                    # Vraća isključivo čist tekst odgovora
-                    return {"reply": candidates[0]["content"]["parts"][0]["text"].strip()}
-        except Exception:
-            continue
+            # Povećan timeout na 15 sekundi kako zahtjev ne bi pukao
+            res = requests.post(url, headers=headers, json=body, timeout=15)
+            data = res.json()
+            
+            if res.status_code == 200 and "candidates" in data and len(data["candidates"]) > 0:
+                reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                return {"reply": reply}
+            elif "error" in data:
+                last_err = data["error"].get("message", "")
+        except Exception as e:
+            last_err = str(e)
 
-    return {"reply": "Privremena greška u spajanju."}
+    return {"reply": f"Greška poslužitelja: {last_err}"}
