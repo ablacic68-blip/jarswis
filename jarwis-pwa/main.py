@@ -3,7 +3,6 @@ import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
@@ -15,10 +14,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Putanja do mape s datotekama
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Render automatski otvara tvoj index.html na glavnoj adresi
 @app.get("/")
 def home():
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
@@ -39,7 +36,8 @@ def jarvis_endpoint(payload: dict):
     if not api_key:
         return {"reply": "Greška: API ključ nije postavljen na Renderu."}
 
-    models = ["gemini-1.5-flash", "gemini-2.0-flash"]
+    # Ažurirani stabilni Gemini modeli
+    models = ["gemini-1.5-flash", "gemini-1.5-pro"]
 
     prompt = (
         "Odgovori izravno, točno i najkraće moguće na postavljeno pitanje. "
