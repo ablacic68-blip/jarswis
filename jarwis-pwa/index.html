@@ -7,134 +7,94 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body {
-            background-color: #090d16;
-            color: #f1f5f9;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        body { background-color: #090d16; color: #f1f5f9; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        
         .header {
-            padding: 14px 18px;
-            background: rgba(15, 23, 42, 0.9);
+            padding: 12px 16px;
+            background: rgba(15, 23, 42, 0.95);
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            z-index: 10;
         }
-        .header-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 1rem; }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .menu-btn { background: none; border: none; color: #f1f5f9; font-size: 1.4rem; cursor: pointer; padding: 4px; }
+        .header-title { font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
         .status-dot { width: 8px; height: 8px; background: #38bdf8; border-radius: 50%; box-shadow: 0 0 8px #38bdf8; }
-        .tts-toggle { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
+        .tts-toggle { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; padding: 6px 10px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; }
         .tts-toggle.active { color: #38bdf8; border-color: #38bdf8; }
-        
-        .chat-box {
-            flex: 1;
-            padding: 16px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .msg {
-            max-width: 88%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 0.95rem;
-            line-height: 1.45;
-            word-wrap: break-word;
-        }
-        .user-msg {
-            align-self: flex-end;
-            background: linear-gradient(135deg, #0284c7, #2563eb);
-            color: #fff;
-            border-bottom-right-radius: 4px;
-        }
-        .bot-msg {
-            align-self: flex-start;
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #e2e8f0;
-            border-bottom-left-radius: 4px;
-            white-space: pre-wrap;
-        }
-        .chat-img { max-width: 100%; max-height: 220px; border-radius: 12px; margin-bottom: 6px; display: block; }
-        
-        .preview-area {
-            display: none;
-            padding: 8px 16px;
-            background: rgba(15, 23, 42, 0.95);
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            align-items: center;
-            gap: 10px;
-        }
-        .preview-area img { height: 44px; border-radius: 8px; }
-        .preview-area button { background: #ef4444; border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; }
 
-        .input-bar {
-            padding: 10px 12px;
-            background: #0f172a;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+        .sidebar-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 20; }
+        .sidebar {
+            position: absolute; top: 0; left: -280px; width: 280px; height: 100%;
+            background: #0f172a; border-right: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 30; transition: left 0.3s ease; display: flex; flex-direction: column; padding: 16px;
         }
-        .action-btns { display: flex; gap: 8px; align-items: center; }
-        .icon-btn {
-            background: rgba(30, 41, 59, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #f1f5f9;
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
+        .sidebar.open { left: 0; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+        .profile-card { background: rgba(30, 41, 59, 0.6); padding: 12px; border-radius: 12px; margin-bottom: 16px; }
+        .profile-card input { width: 100%; background: #090d16; border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px; border-radius: 8px; font-size: 0.85rem; margin-top: 6px; }
+        .new-chat-btn { background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; color: white; padding: 10px; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 12px; }
+        .chat-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .chat-item { background: rgba(30, 41, 59, 0.4); padding: 10px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; }
+        .chat-item.active { border-color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+        .chat-item-del { color: #ef4444; background: none; border: none; font-size: 0.9rem; cursor: pointer; padding: 2px 6px; }
+
+        .chat-box { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .msg { max-width: 88%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.45; word-wrap: break-word; }
+        .user-msg { align-self: flex-end; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
+        .bot-msg { align-self: flex-start; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); color: #e2e8f0; border-bottom-left-radius: 4px; white-space: pre-wrap; }
+        .chat-img { max-width: 100%; max-height: 220px; border-radius: 12px; margin-bottom: 6px; display: block; }
+
+        .action-link { display: inline-block; margin-top: 8px; padding: 8px 14px; background: #0284c7; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.85rem; }
+
+        .preview-area { display: none; padding: 8px 16px; background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(255, 255, 255, 0.08); align-items: center; gap: 10px; }
+        .preview-area img { height: 44px; border-radius: 8px; }
+        .preview-area button { background: #ef4444; border: none; color: white; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; }
+
+        .input-bar { padding: 10px 12px; background: #0f172a; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+        .action-btns { display: flex; gap: 6px; align-items: center; }
+        .icon-btn { background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.12); color: #f1f5f9; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; }
         .icon-btn.recording { background: #ef4444; border-color: #f87171; animation: pulse 1s infinite; }
-        input[type="text"] {
-            flex: 1;
-            height: 44px;
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            padding: 0 14px;
-            border-radius: 12px;
-            color: white;
-            font-size: 0.95rem;
-            outline: none;
-        }
-        .send-btn {
-            background: linear-gradient(135deg, #38bdf8, #0284c7);
-            border: none;
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
+        input[type="text"] { flex: 1; height: 42px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.12); padding: 0 12px; border-radius: 12px; color: white; font-size: 0.9rem; outline: none; }
+        .send-btn { background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; width: 42px; height: 42px; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; flex-shrink: 0; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="header-title">
-            <div class="status-dot"></div>
-            <span>JARVIS Mobile</span>
+    <div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Izbornik</h3>
+            <button class="menu-btn" onclick="toggleMenu()">✕</button>
         </div>
-        <button class="tts-toggle active" id="ttsToggle" onclick="toggleTTS()">🔊 Glas uključena</button>
+        
+        <div class="profile-card">
+            <span style="font-size: 0.8rem; color: #94a3b8;">Profil / Korisnik:</span>
+            <input type="text" id="usernameInput" placeholder="Unesi ime..." onchange="saveProfile()">
+        </div>
+
+        <button class="new-chat-btn" onclick="createNewChat()">+ Novi razgovor</button>
+        
+        <span style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px;">Spremljeni razgovori:</span>
+        <div class="chat-list" id="chatList"></div>
     </div>
 
-    <div class="chat-box" id="chatBox">
-        <div class="msg bot-msg">Bok! Možeš mi pisati, pričati na mikrofon ili poslati sliku iz galerije/kamere.</div>
+    <div class="header">
+        <div class="header-left">
+            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+            <div class="header-title">
+                <div class="status-dot"></div>
+                <span>JARVIS Mobile</span>
+            </div>
+        </div>
+        <button class="tts-toggle" id="ttsToggle" onclick="toggleTTS()">🔇 Glas isključena</button>
     </div>
+
+    <div class="chat-box" id="chatBox"></div>
 
     <div class="preview-area" id="previewArea">
         <img id="imgPreview" src="" alt="Preview">
@@ -143,7 +103,6 @@
     </div>
 
     <div class="input-bar">
-        <!-- Skriveni ulazi za kameru i galeriju -->
         <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(event)">
         <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
 
@@ -151,7 +110,7 @@
             <button class="icon-btn" onclick="document.getElementById('cameraInput').click()" title="Slikaj">📷</button>
             <button class="icon-btn" onclick="document.getElementById('galleryInput').click()" title="Galerija">🖼️</button>
             <button class="icon-btn" id="micBtn" onclick="toggleSpeech()" title="Govori">🎙️</button>
-            <input type="text" id="userInput" placeholder="Poruka ili glas..." onkeydown="if(event.key === 'Enter') sendMessage()">
+            <input type="text" id="userInput" placeholder="Poruka ili naredba..." onkeydown="if(event.key === 'Enter') sendMessage()">
             <button class="send-btn" onclick="sendMessage()">➤</button>
         </div>
     </div>
@@ -159,11 +118,152 @@
     <script>
         let selectedBase64 = null;
         let selectedMime = "image/jpeg";
-        let ttsEnabled = true;
+        let ttsEnabled = false;
         let recognition = null;
         let isRecording = false;
+        let chats = [];
+        let activeChatId = null;
 
-        // Postavke za prepoznavanje govora (Speech-to-Text)
+        window.onload = function() {
+            loadProfile();
+            loadChats();
+        };
+
+        function toggleMenu() {
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.getElementById("overlay");
+            const isOpen = sidebar.classList.contains("open");
+            sidebar.classList.toggle("open", !isOpen);
+            overlay.style.display = isOpen ? "none" : "block";
+        }
+
+        function saveProfile() {
+            localStorage.setItem("jarvis_user", document.getElementById("usernameInput").value);
+        }
+
+        function loadProfile() {
+            document.getElementById("usernameInput").value = localStorage.getItem("jarvis_user") || "";
+        }
+
+        function loadChats() {
+            const saved = localStorage.getItem("jarvis_chats");
+            chats = saved ? JSON.parse(saved) : [];
+            if (chats.length === 0) createNewChat();
+            else { activeChatId = chats[0].id; renderChatList(); renderMessages(); }
+        }
+
+        function saveChats() {
+            localStorage.setItem("jarvis_chats", JSON.stringify(chats));
+        }
+
+        function createNewChat() {
+            const newChat = {
+                id: Date.now().toString(),
+                title: "Novi razgovor",
+                messages: [{ sender: "bot", text: "Bok! Reci mi što želiš napraviti — poslati poruku, nekoga nazvati ili otvoriti aplikaciju." }]
+            };
+            chats.unshift(newChat);
+            activeChatId = newChat.id;
+            saveChats();
+            renderChatList();
+            renderMessages();
+            if (document.getElementById("sidebar").classList.contains("open")) toggleMenu();
+        }
+
+        function switchChat(id) {
+            activeChatId = id;
+            renderChatList();
+            renderMessages();
+            toggleMenu();
+        }
+
+        function deleteChat(id, event) {
+            event.stopPropagation();
+            chats = chats.filter(c => c.id !== id);
+            if (chats.length === 0) createNewChat();
+            else {
+                if (activeChatId === id) activeChatId = chats[0].id;
+                saveChats(); renderChatList(); renderMessages();
+            }
+        }
+
+        function renderChatList() {
+            const listEl = document.getElementById("chatList");
+            listEl.innerHTML = "";
+            chats.forEach(chat => {
+                const div = document.createElement("div");
+                div.className = `chat-item ${chat.id === activeChatId ? 'active' : ''}`;
+                div.onclick = () => switchChat(chat.id);
+                div.innerHTML = `
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">${chat.title}</span>
+                    <button class="chat-item-del" onclick="deleteChat('${chat.id}', event)">✕</button>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        function renderMessages() {
+            const chatBox = document.getElementById("chatBox");
+            chatBox.innerHTML = "";
+            const activeChat = chats.find(c => c.id === activeChatId);
+            if (!activeChat) return;
+
+            activeChat.messages.forEach(msg => {
+                const div = document.createElement("div");
+                div.className = `msg ${msg.sender === 'user' ? 'user-msg' : 'bot-msg'}`;
+                if (msg.image) {
+                    const img = document.createElement("img");
+                    img.src = msg.image;
+                    img.className = "chat-img";
+                    div.appendChild(img);
+                }
+                if (msg.text) div.appendChild(document.createTextNode(msg.text));
+                
+                // Prikaz gumba za akcije ako postoje u poruci
+                if (msg.actionBtn) {
+                    const btn = document.createElement("a");
+                    btn.className = "action-link";
+                    btn.href = msg.actionBtn.url;
+                    btn.textContent = msg.actionBtn.label;
+                    div.appendChild(document.createElement("br"));
+                    div.appendChild(btn);
+                }
+
+                chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Izvršavanje akcija (Poziv, SMS, App Store)
+        function handleSystemActions(replyText) {
+            let cleanText = replyText;
+            let actionBtn = null;
+
+            if (replyText.includes("[ACTION:CALL:")) {
+                const number = replyText.split("[ACTION:CALL:")[1].split("]")[0].trim();
+                cleanText = replyText.replace(/\[ACTION:CALL:.*?\]/g, "");
+                actionBtn = { label: "📞 Pozovi " + number, url: "tel:" + number };
+                window.location.href = "tel:" + number;
+            } else if (replyText.includes("[ACTION:SMS:")) {
+                const parts = replyText.split("[ACTION:SMS:")[1].split("]")[0].split(":");
+                const number = parts[0].trim();
+                const body = parts.slice(1).join(":").trim();
+                cleanText = replyText.replace(/\[ACTION:SMS:.*?\]/g, "");
+                const smsUrl = `sms:${number}?body=${encodeURIComponent(body)}`;
+                actionBtn = { label: "💬 Pošalji SMS", url: smsUrl };
+                window.location.href = smsUrl;
+            } else if (replyText.includes("[ACTION:APP:")) {
+                const appName = replyText.split("[ACTION:APP:")[1].split("]")[0].trim();
+                cleanText = replyText.replace(/\[ACTION:APP:.*?\]/g, "");
+                const storeUrl = `https://play.google.com/store/search?q=${encodeURIComponent(appName)}&c=apps`;
+                actionBtn = { label: "📱 Otvori / Preuzmi " + appName, url: storeUrl };
+                window.open(storeUrl, "_blank");
+            }
+
+            return { cleanText, actionBtn };
+        }
+
+        // Prepoznavanje govora
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
@@ -172,24 +272,18 @@
             recognition.interimResults = false;
 
             recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById("userInput").value = transcript;
+                document.getElementById("userInput").value = event.results[0][0].transcript;
                 stopSpeech();
                 sendMessage();
             };
-
             recognition.onerror = () => stopSpeech();
             recognition.onend = () => stopSpeech();
         }
 
         function toggleSpeech() {
-            if (!recognition) {
-                alert("Vaš preglednik ne podržava glasovni unos.");
-                return;
-            }
-            if (isRecording) {
-                stopSpeech();
-            } else {
+            if (!recognition) { alert("Preglednik ne podržava glasovni unos."); return; }
+            if (isRecording) stopSpeech();
+            else {
                 recognition.start();
                 isRecording = true;
                 document.getElementById("micBtn").classList.add("recording");
@@ -221,7 +315,6 @@
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             selectedMime = file.type || "image/jpeg";
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -241,36 +334,27 @@
 
         async function sendMessage() {
             const input = document.getElementById("userInput");
-            const chatBox = document.getElementById("chatBox");
             const text = input.value.trim();
 
             if (!text && !selectedBase64) return;
 
-            const userDiv = document.createElement("div");
-            userDiv.className = "msg user-msg";
-            
-            if (selectedBase64) {
-                const imgEl = document.createElement("img");
-                imgEl.src = selectedBase64;
-                imgEl.className = "chat-img";
-                userDiv.appendChild(imgEl);
-            }
-            if (text) {
-                userDiv.appendChild(document.createTextNode(text));
+            const activeChat = chats.find(c => c.id === activeChatId);
+            if (!activeChat) return;
+
+            if (activeChat.messages.length <= 1 && text) {
+                activeChat.title = text.substring(0, 22) + "...";
+                renderChatList();
             }
 
-            chatBox.appendChild(userDiv);
-            
-            const payloadData = {
-                text: text,
-                image: selectedBase64,
-                mime_type: selectedMime
-            };
+            activeChat.messages.push({ sender: "user", text: text, image: selectedBase64 });
+            saveChats();
+            renderMessages();
 
+            const payloadData = { text: text, image: selectedBase64, mime_type: selectedMime };
             input.value = "";
             clearImage();
-            chatBox.scrollTop = chatBox.scrollHeight;
 
+            const chatBox = document.getElementById("chatBox");
             const loadingDiv = document.createElement("div");
             loadingDiv.className = "msg bot-msg";
             loadingDiv.textContent = "JARVIS razmišlja...";
@@ -285,15 +369,19 @@
                 });
 
                 const data = await res.json();
-                const replyText = data.reply || "Nema odgovora.";
-                loadingDiv.textContent = replyText;
-                speak(replyText);
+                chatBox.removeChild(loadingDiv);
+
+                const rawReply = data.reply || "Nema odgovora.";
+                const { cleanText, actionBtn } = handleSystemActions(rawReply);
+
+                activeChat.messages.push({ sender: "bot", text: cleanText, actionBtn: actionBtn });
+                saveChats();
+                renderMessages();
+                speak(cleanText);
             } catch (err) {
                 loadingDiv.textContent = "Greška u povezivanju s poslužiteljem.";
                 loadingDiv.style.color = "#ef4444";
             }
-
-            chatBox.scrollTop = chatBox.scrollHeight;
         }
     </script>
 </body>
