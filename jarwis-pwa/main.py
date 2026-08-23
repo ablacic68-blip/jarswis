@@ -27,7 +27,7 @@ def jarvis_endpoint(payload: dict):
     mime_type = payload.get("mime_type", "image/jpeg")
 
     if not user_text and not image_b64:
-        return {"reply": "Pošaljite tekst ili sliku."}
+        return {"reply": "Pošaljite glasovnu poruku, tekst ili sliku."}
 
     api_key = (
         os.getenv("GEMINI_API_KEY") or 
@@ -58,19 +58,17 @@ def jarvis_endpoint(payload: dict):
     if not models_to_try:
         models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
 
-    # Konstruiranje dijela poruke (tekst + slika)
     parts = []
-    
     instruction = (
         "Tvoja uloga je JARVIS — inteligentan, pristupačan i prirodan sugovornik. "
         "Ako je priložena slika sa zadatkom ili tekstom, točno i korak-po-korak objasni i riješi zadatak. "
-        "Razgovaraj prirodno i ljudski.\n\n"
+        "Odgovori prirodnim, tečnim jezikom kako bi odgovor zvučao dobro i u govornom obliku.\n\n"
     )
 
     if user_text:
-        parts.append({"text": f"{instruction}Korisničko pitanje/uputa: {user_text}"})
+        parts.append({"text": f"{instruction}Korisnik: {user_text}"})
     else:
-        parts.append({"text": f"{instruction}Detaljno analiziraj ovu sliku, objasni sadržaj ili riješi zadatak prikazan na njoj."})
+        parts.append({"text": f"{instruction}Detaljno analiziraj ovu sliku i riješi zadatak na njoj."})
 
     if image_b64:
         if "," in image_b64:
