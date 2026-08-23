@@ -30,32 +30,26 @@ def jarvis_endpoint(payload: dict):
     if not api_key:
         return {"reply": "Greška: Ključ nije postavljen na Renderu."}
 
-    # Provjereni besplatni modeli
-    models = ["gemini-1.5-flash", "gemini-2.0-flash"]
-
-    # Direktna uputa unutar samog tekstualnog zahtjeva (garantira brzinu i izravan odgovor)
-    prompt = f"Odgovori izravno, kratko i bez ikakvih uvodnih fraza ili pozdrava na sljedeće: {user_text}"
+    # Provjereni endpoint i model koji pouzdano radi
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     
+    headers = {"Content-Type": "application/json"}
     body = {
         "contents": [{
-            "parts": [{"text": prompt}]
+            "parts": [{"text": user_text}]
         }]
     }
-    headers = {"Content-Type": "application/json"}
 
-    last_err = ""
-    for model in models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        try:
-            res = requests.post(url, headers=headers, json=body, timeout=10)
-            data = res.json()
+    try:
+        res = requests.post(url, headers=headers, json=body, timeout=15)
+        data = res.json()
+        
+        if res.status_code == 200 and "candidates" in data:
+            reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            return {"reply": reply}
+        else:
+            error_msg = data.get("error", {}).get("message", "Nepoznata greška API-ja")
+            return {"reply": f"Google greška: {error_msg}"}
             
-            if res.status_code == 200 and "candidates" in data and len(data["candidates"]) > 0:
-                reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                return {"reply": reply}
-            elif "error" in data:
-                last_err = data["error"].get("message", "Greška u odgovoru")
-        except Exception as e:
-            last_err = str(e)
-
-    return {"reply": f"Greška poslužitelja: {last_err}"}
+    except Exception as e:
+        return {"reply": f"Greška spajanja: {str(e)}"}
