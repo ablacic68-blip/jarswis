@@ -21,7 +21,7 @@ def home():
 def jarvis_endpoint(payload: dict):
     user_text = payload.get("text", "")
     
-    # Automatski provjerava bilo koji naziv pod kojim si mogao spremiti ključ na Renderu
+    # Preuzimanje ključa iz Render Environment varijabli
     api_key = (
         os.getenv("GEMINI_API_KEY") or 
         os.getenv("GOOGLE_API_KEY") or 
@@ -31,12 +31,13 @@ def jarvis_endpoint(payload: dict):
     
     if not api_key:
         return {
-            "reply": "Greška: API ključ nije pronađen u Render Environment postavkama. Provjeri naziv varijable.", 
+            "reply": "Greška: Nije pronađen API ključ u Render postavkama.", 
             "model_used": "Nijedan"
         }
         
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        # Koristimo stabilni besplatni Gemini 1.5 Pro model
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
         body = {"contents": [{"parts": [{"text": user_text}]}]}
         
@@ -44,11 +45,10 @@ def jarvis_endpoint(payload: dict):
         data = response.json()
         
         if "error" in data:
-            error_msg = data['error'].get('message', 'Nepoznato')
-            return {"reply": f"Google API greška: {error_msg}", "model_used": "Greška"}
+            return {"reply": f"Google greška: {data['error'].get('message', 'Nepoznato')}", "model_used": "Greška"}
             
         reply = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Nema odgovora.")
-        return {"reply": reply, "model_used": "Gemini 1.5 Flash"}
+        return {"reply": reply, "model_used": "Gemini 1.5 Pro"}
         
     except Exception as e:
         return {"reply": f"Greška na serveru: {str(e)}", "model_used": "Greška"}
