@@ -1,12 +1,10 @@
-
-      import os
+import os
 import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Omogućuje spajanje s Netlifyja i bilo koje druge domene
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,7 +21,6 @@ def home():
 def jarvis_endpoint(payload: dict):
     user_text = payload.get("text", "")
     
-    # Preuzimanje ključa iz Render Environment varijabli
     api_key = (
         os.getenv("GEMINI_API_KEY") or 
         os.getenv("GOOGLE_API_KEY") or 
@@ -31,14 +28,9 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {
-            "reply": "Greška: GEMINI_API_KEY nije postavljen u Render Environment postavama.",
-            "model_used": "Nema ključa"
-        }
+        return {"reply": "Greška: GEMINI_API_KEY nije postavljen na Renderu.", "model_used": "Nema ključa"}
 
-    # Popis besplatnih Gemini modela koji se isprobavaju redom
     models_to_try = [
-        "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
         "gemini-1.5-pro"
@@ -63,25 +55,4 @@ def jarvis_endpoint(payload: dict):
         except Exception as e:
             last_error = str(e)
 
-    return {
-        "reply": f"Svi Gemini modeli su odbijeni. Zadnja greška: {last_error}",
-        "model_used": "Greška"
-        async function posaljiPorukuJarvisu(tekstPoruke) {
-    try {
-        const response = await fetch("https://jarswis.onrender.com/api/jarvis", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ text: tekstPoruke })
-        });
-
-        const data = await response.json();
-        return data.reply;
-
-    } catch (error) {
-        console.error("Greška pri spajanju:", error);
-        return "Greška pri spajanju na poslužitelj. Provjeri je li Render server pokrenut.";
-    }
-}
-    }
+    return {"reply": f"Greška pri spajanju s Googleom: {last_error}", "model_used": "Greška"}
