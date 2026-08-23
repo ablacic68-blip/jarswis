@@ -34,9 +34,9 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {"reply": "Greška: API ključ nije postavljen na Renderu."}
+        return {"reply": "Greška: API ključ nije postavljen u Environment Variables na Renderu."}
 
-    # 1. Automatsko dohvaćanje popisa trenutno aktivnih Gemini modela
+    # Dohvaćanje i filtriranje isključivo tekstualnih modela
     models_to_try = []
     try:
         list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
@@ -44,14 +44,18 @@ def jarvis_endpoint(payload: dict):
         if list_res.status_code == 200:
             data = list_res.json()
             for m in data.get("models", []):
-                methods = m.get("supportedGenerationMethods", [])
+                methods = [method.lower() for method in m.get("supportedGenerationMethods", [])]
                 name = m.get("name", "").replace("models/", "")
-                if "generateContent" in methods and "gemini" in name:
-                    models_to_try.append(name)
+                name_lower = name.lower()
+                
+                # Strogo filtriranje: ignoriramo audio, live, speech i embedding modele
+                if "generatecontent" in methods and "gemini" in name_lower:
+                    if not any(bad in name_lower for bad in ["audio", "live", "realtime", "speech", "tts", "stt", "embed"]):
+                        models_to_try.append(name)
     except Exception:
         pass
 
-    # Rezervne opcije ako automatska provjera ne prođe
+    # Rezervna lista provjerenih tekstualnih modela
     if not models_to_try:
         models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
 
@@ -69,8 +73,7 @@ def jarvis_endpoint(payload: dict):
     headers = {"Content-Type": "application/json"}
     last_error = ""
 
-    # 2. Slanje upita na prve dostupne modele
-    for model in models_to_try[:3]:
+    for model in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         try:
             res = requests.post(url, headers=headers, json=body, timeout=12)
