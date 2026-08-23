@@ -30,14 +30,27 @@ def jarvis_endpoint(payload: dict):
     if not api_key:
         return {"reply": "Greška: GEMINI_API_KEY nije postavljen na Renderu.", "model_used": "Nema ključa"}
 
-    models_to_try = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro"
-    ]
+    # 1. Automatski dohvaćamo točan popis modela koje tvoj API ključ podržava
+    models_to_try = []
+    try:
+        list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+        res_list = requests.get(list_url, timeout=10).json()
+        
+        if "models" in res_list:
+            for m in res_list["models"]:
+                if "generateContent" in m.get("supportedGenerationMethods", []):
+                    name = m["name"].replace("models/", "")
+                    models_to_try.append(name)
+    except Exception:
+        pass
+
+    # Rezervni nazivi ako popis ne prođe
+    if not models_to_try:
+        models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
 
     last_error = ""
 
+    # 2. Isprobavamo modele s liste dok prvi ne odgovori
     for model in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
