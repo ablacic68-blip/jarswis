@@ -36,8 +36,8 @@ def jarvis_endpoint(payload: dict):
     if not api_key:
         return {"reply": "Greška: API ključ nije postavljen u Environment Variables na Renderu."}
 
-    # Trenutno podržani i aktivni Gemini 2.5 modeli
-    models = ["gemini-2.5-flash", "gemini-2.5-pro"]
+    # Model ažuriran na Gemini 3.1 Pro s rezervnim opcijama
+    models = ["gemini-3.1-pro", "gemini-2.5-pro", "gemini-2.5-flash"]
 
     prompt = (
         "Odgovori izravno, točno i najkraće moguće na postavljeno pitanje. "
