@@ -2,55 +2,163 @@
 <html lang="hr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JARVIS AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; }
-        #chat-box { height: 400px; overflow-y: auto; border: 1px solid #333; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .user-msg { color: #4da6ff; text-align: right; margin: 8px 0; }
-        .bot-msg { color: #00ff88; text-align: left; margin: 8px 0; }
-        .input-group { display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; }
-        button { padding: 12px 20px; border-radius: 6px; border: none; background: #007bff; color: white; cursor: pointer; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body {
+            background: radial-gradient(circle at top left, #0f172a, #020617);
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+        }
+        .container {
+            width: 100%;
+            max-width: 550px;
+            height: 94vh;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            padding: 18px 20px;
+            background: rgba(2, 6, 23, 0.5);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 1.1rem; letter-spacing: 0.5px; }
+        .status-dot { width: 9px; height: 9px; background: #38bdf8; border-radius: 50%; box-shadow: 0 0 10px #38bdf8; }
+        .chat-box {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .msg {
+            max-width: 85%;
+            padding: 13px 17px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+            animation: fadeIn 0.25s ease-in-out;
+        }
+        .user-msg {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .bot-msg {
+            align-self: flex-start;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+        .input-area {
+            padding: 16px;
+            background: rgba(2, 6, 23, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 14px 18px;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        input:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); }
+        button {
+            background: linear-gradient(135deg, #38bdf8, #0284c7);
+            border: none;
+            padding: 0 22px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.96); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <h2>JARVIS AI Assistant</h2>
-    <div id="chat-box"></div>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">
+                <div class="status-dot"></div>
+                <span>JARVIS System</span>
+            </div>
+        </div>
 
-    <div class="input-group">
-        <input type="text" id="userInput" placeholder="Upiši poruku..." onkeydown="if(event.key === 'Enter') sendMessage()">
-        <button onclick="sendMessage()">Pošalji</button>
+        <div class="chat-box" id="chatBox">
+            <div class="msg bot-msg">Bok! Kako ti mogu pomoći danas?</div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Napiši poruku..." onkeydown="if(event.key === 'Enter') sendMessage()">
+            <button onclick="sendMessage()">Pošalji</button>
+        </div>
     </div>
 
     <script>
         async function sendMessage() {
-            const inputField = document.getElementById("userInput");
-            const chatBox = document.getElementById("chat-box");
-            const text = inputField.value.trim();
+            const input = document.getElementById("userInput");
+            const chatBox = document.getElementById("chatBox");
+            const text = input.value.trim();
 
             if (!text) return;
 
-            // Prikaz korisničke poruke
-            chatBox.innerHTML += `<div class="user-msg"><b>Ti:</b> ${text}</div>`;
-            inputField.value = "";
+            // Dodaj poruku korisnika
+            const userDiv = document.createElement("div");
+            userDiv.className = "msg user-msg";
+            userDiv.textContent = text;
+            chatBox.appendChild(userDiv);
+            
+            input.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Dodaj privremeni indikator učitavanja
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "msg bot-msg";
+            loadingDiv.textContent = "JARVIS razmišlja...";
+            chatBox.appendChild(loadingDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
-                // Poziv prema Python backendu
-                const response = await fetch("/api/jarvis", {
+                const res = await fetch("/api/jarvis", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ text: text })
                 });
 
-                const data = await response.json();
-                
-                // Prikaz odgovora iz data.reply
-                chatBox.innerHTML += `<div class="bot-msg"><b>JARVIS:</b> ${data.reply}</div>`;
+                const data = await res.json();
+                loadingDiv.textContent = data.reply || "Nema odgovora.";
             } catch (err) {
-                chatBox.innerHTML += `<div class="bot-msg" style="color:red;"><b>Greška:</b> Nije moguće spojiti se na server.</div>`;
+                loadingDiv.textContent = "Greška: Nije moguće uspostaviti vezu sa poslužiteljem.";
+                loadingDiv.style.color = "#ef4444";
             }
 
             chatBox.scrollTop = chatBox.scrollHeight;
