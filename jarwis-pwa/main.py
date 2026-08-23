@@ -34,9 +34,8 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {"reply": "Greška: API ključ nije postavljen u Environment Variables na Renderu."}
+        return {"reply": "Greška: API ključ nije postavljen na Renderu."}
 
-    # Dohvaćanje i filtriranje isključivo tekstualnih modela
     models_to_try = []
     try:
         list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
@@ -48,21 +47,21 @@ def jarvis_endpoint(payload: dict):
                 name = m.get("name", "").replace("models/", "")
                 name_lower = name.lower()
                 
-                # Strogo filtriranje: ignoriramo audio, live, speech i embedding modele
                 if "generatecontent" in methods and "gemini" in name_lower:
                     if not any(bad in name_lower for bad in ["audio", "live", "realtime", "speech", "tts", "stt", "embed"]):
                         models_to_try.append(name)
     except Exception:
         pass
 
-    # Rezervna lista provjerenih tekstualnih modela
     if not models_to_try:
         models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
 
+    # Prilagođena uputa: Prirodan, ugodan i obrazložen stil razgovora
     prompt = (
-        "Odgovori izravno, točno i najkraće moguće na postavljeno pitanje. "
-        "ZABRANJENO JE: pozdravljanje, uvodne fraze, navođenje tko pita i ponavljanje pitanja.\n\n"
-        f"Pitanje: {user_text}"
+        "Tvoja uloga je JARVIS — inteligentan, pristupačan i prirodan sugovornik. "
+        "Razgovaraj opušteno i ljudski. Kada korisnik pita nešto što zahtijeva detaljnije razumijevanje, "
+        "jasno obrazloži kontekst i objasni razloge iza svog odgovora, ali bez suvišnog robotskog prenavljanja.\n\n"
+        f"Korisnik kaže: {user_text}"
     )
 
     body = {
