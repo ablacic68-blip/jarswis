@@ -69,6 +69,11 @@ async function posaljiPoruku() {
     container.scrollTop = container.scrollHeight;
 }
 </script>
-
+// Izmjeni fetch poziv da izgleda ovako:
+const response = await fetch('/api/jarvis', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: userMessage })
+});
 </body>
 </html>
