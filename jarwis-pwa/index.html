@@ -40,23 +40,67 @@
       max-height: 250px;
       overflow-y: auto;
       text-align: left;
+      margin-bottom: 20px;
     }
 
-    .controls { display: flex; flex-direction: column; align-items: center; }
+    .controls { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      width: 100%; 
+      max-width: 500px; 
+      gap: 15px; 
+    }
+    
+    .text-box {
+      display: flex;
+      width: 100%;
+      gap: 10px;
+    }
+    
+    .text-box input {
+      flex: 1;
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: white;
+      font-size: 16px;
+      outline: none;
+    }
+    .text-box input:focus {
+      border-color: #38bdf8;
+    }
+    
+    .text-box button {
+      padding: 14px 22px;
+      border-radius: 8px;
+      border: none;
+      background: #0284c7;
+      color: white;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .text-box button:hover {
+      background: #0369a1;
+    }
+
     .mic-btn {
-      width: 90px;
-      height: 90px;
+      width: 65px;
+      height: 65px;
       border-radius: 50%;
       background: linear-gradient(135deg, #0284c7, #2563eb);
       border: none;
       color: white;
-      font-size: 36px;
+      font-size: 26px;
       cursor: pointer;
-      box-shadow: 0 0 25px rgba(2, 132, 199, 0.5);
+      box-shadow: 0 0 18px rgba(2, 132, 199, 0.4);
       transition: transform 0.2s;
     }
     .mic-btn:active { transform: scale(0.95); }
-    .listening { animation: pulse 1.5s infinite; background: #ef4444; box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
+    .listening { animation: pulse 1.5s infinite; background: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
 
     @keyframes pulse {
       0% { transform: scale(1); }
@@ -72,17 +116,53 @@
   </header>
 
   <div class="content">
-    <div id="status">Pritisnite mikrofon i recite nešto...</div>
+    <div id="status">Upišite poruku ili pritisnite mikrofon...</div>
     <div id="response">Spreman za rad.</div>
   </div>
 
   <div class="controls">
-    <button id="micBtn" class="mic-btn" onclick="toggleListening()">🎙️</button>
+    <!-- Primary Option: Text Input -->
+    <div class="text-box">
+      <input type="text" id="userInput" placeholder="Napiši poruku JARVIS-u..." onkeydown="if(event.key==='Enter') sendText()">
+      <button onclick="sendText()">Pošalji</button>
+    </div>
+    
+    <!-- Secondary Option: Voice Input -->
+    <button id="micBtn" class="mic-btn" onclick="toggleListening()" title="Glasovni unos">🎙️</button>
   </div>
 
   <script>
-    // ZAMJENI SVOJIM RENDER URL-OM NAKON ŠTO OBJAVIŠ BACKEND
-    const BACKEND_URL = "https://tvoj-jarvis-backend.onrender.com/api/jarvis";
+    const BACKEND_URL = "https://jarswis.onrender.com/api/jarvis";
+
+    async function sendText() {
+      const input = document.getElementById('userInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      await processRequest(text);
+    }
+
+    async function processRequest(text) {
+      document.getElementById('status').innerText = `Šaljem: "${text}"`;
+      document.getElementById('response').innerText = "JARVIS razmišlja...";
+
+      try {
+        const res = await fetch(BACKEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text })
+        });
+        
+        const data = await res.json();
+        document.getElementById('response').innerText = data.reply;
+        document.getElementById('status').innerText = `Model: ${data.model_used || 'Spreman'}`;
+
+        speakResponse(data.reply);
+      } catch (err) {
+        document.getElementById('response').innerText = "Pogreška pri spajanju na server.";
+        document.getElementById('status').innerText = "Provjerite je li Render aktiviran.";
+      }
+    }
 
     let recognition;
     let isListening = false;
@@ -91,7 +171,6 @@
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
       recognition.lang = 'hr-HR';
-      recognition.continuous = false;
 
       recognition.onstart = () => {
         isListening = true;
@@ -104,38 +183,15 @@
         document.getElementById('micBtn').classList.remove('listening');
       };
 
-      recognition.onresult = async (event) => {
+      recognition.onresult = (event) => {
         const text = event.results[0][0].transcript;
-        document.getElementById('status').innerText = `Čuo sam: "${text}"`;
-        document.getElementById('response').innerText = "JARVIS razmišlja...";
-
-        try {
-          const res = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: text })
-          });
-          
-          const data = await res.json();
-          document.getElementById('response').innerText = data.reply;
-          document.getElementById('status').innerText = `Model: ${data.model_used || 'Spreman'}`;
-
-          speakResponse(data.reply);
-        } catch (err) {
-          document.getElementById('response').innerText = "Pogreška pri spajanju na server.";
-          document.getElementById('status').innerText = "Pritisnite mikrofon za ponovni pokušaj.";
-        }
+        processRequest(text);
       };
-    } else {
-      alert("Vaš preglednik ne podržava glasovni unos.");
     }
 
     function toggleListening() {
-      if (isListening) {
-        recognition.stop();
-      } else {
-        recognition.start();
-      }
+      if (!recognition) return alert("Glasovni unos nije podržan u ovom pregledniku.");
+      isListening ? recognition.stop() : recognition.start();
     }
 
     function speakResponse(text) {
@@ -143,7 +199,6 @@
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'hr-HR';
-        utterance.rate = 1.0;
         window.speechSynthesis.speak(utterance);
       }
     }
