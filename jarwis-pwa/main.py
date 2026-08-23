@@ -23,9 +23,11 @@ def home():
 @app.post("/api/jarvis")
 def jarvis_endpoint(payload: dict):
     user_text = payload.get("text", "").strip()
-    
-    if not user_text:
-        return {"reply": "Niste poslali tekst."}
+    image_b64 = payload.get("image", None)
+    mime_type = payload.get("mime_type", "image/jpeg")
+
+    if not user_text and not image_b64:
+        return {"reply": "Pošaljite tekst ili sliku."}
 
     api_key = (
         os.getenv("GEMINI_API_KEY") or 
@@ -56,32 +58,44 @@ def jarvis_endpoint(payload: dict):
     if not models_to_try:
         models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
 
-    # Prilagođena uputa: Prirodan, ugodan i obrazložen stil razgovora
-    prompt = (
+    # Konstruiranje dijela poruke (tekst + slika)
+    parts = []
+    
+    instruction = (
         "Tvoja uloga je JARVIS — inteligentan, pristupačan i prirodan sugovornik. "
-        "Razgovaraj opušteno i ljudski. Kada korisnik pita nešto što zahtijeva detaljnije razumijevanje, "
-        "jasno obrazloži kontekst i objasni razloge iza svog odgovora, ali bez suvišnog robotskog prenavljanja.\n\n"
-        f"Korisnik kaže: {user_text}"
+        "Ako je priložena slika sa zadatkom ili tekstom, točno i korak-po-korak objasni i riješi zadatak. "
+        "Razgovaraj prirodno i ljudski.\n\n"
     )
 
-    body = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
-    }
+    if user_text:
+        parts.append({"text": f"{instruction}Korisničko pitanje/uputa: {user_text}"})
+    else:
+        parts.append({"text": f"{instruction}Detaljno analiziraj ovu sliku, objasni sadržaj ili riješi zadatak prikazan na njoj."})
+
+    if image_b64:
+        if "," in image_b64:
+            image_b64 = image_b64.split(",")[1]
+        parts.append({
+            "inline_data": {
+                "mime_type": mime_type,
+                "data": image_b64
+            }
+        })
+
+    body = {"contents": [{"parts": parts}]}
     headers = {"Content-Type": "application/json"}
     last_error = ""
 
     for model in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         try:
-            res = requests.post(url, headers=headers, json=body, timeout=12)
+            res = requests.post(url, headers=headers, json=body, timeout=15)
             data = res.json()
 
             if res.status_code == 200 and "candidates" in data and len(data["candidates"]) > 0:
-                parts = data["candidates"][0].get("content", {}).get("parts", [])
-                if parts and "text" in parts[0]:
-                    return {"reply": parts[0]["text"].strip()}
+                parts_res = data["candidates"][0].get("content", {}).get("parts", [])
+                if parts_res and "text" in parts_res[0]:
+                    return {"reply": parts_res[0]["text"].strip()}
 
             if "error" in data:
                 last_error = data["error"].get("message", "Greška u odgovoru")
