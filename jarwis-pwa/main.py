@@ -34,12 +34,27 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {"reply": "Greška: API ključ nije postavljen u Environment Variables na Renderu."}
+        return {"reply": "Greška: API ključ nije postavljen na Renderu."}
 
-    # Stabilni Gemini modeli
-    models = ["gemini-1.5-flash", "gemini-1.5-pro"]
+    # 1. Automatsko dohvaćanje popisa trenutno aktivnih Gemini modela
+    models_to_try = []
+    try:
+        list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+        list_res = requests.get(list_url, timeout=5)
+        if list_res.status_code == 200:
+            data = list_res.json()
+            for m in data.get("models", []):
+                methods = m.get("supportedGenerationMethods", [])
+                name = m.get("name", "").replace("models/", "")
+                if "generateContent" in methods and "gemini" in name:
+                    models_to_try.append(name)
+    except Exception:
+        pass
 
-    # Stroga uputa koja forsira brzi i direktan odgovor bez uvodnih fraza
+    # Rezervne opcije ako automatska provjera ne prođe
+    if not models_to_try:
+        models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+
     prompt = (
         "Odgovori izravno, točno i najkraće moguće na postavljeno pitanje. "
         "ZABRANJENO JE: pozdravljanje, uvodne fraze, navođenje tko pita i ponavljanje pitanja.\n\n"
@@ -54,7 +69,8 @@ def jarvis_endpoint(payload: dict):
     headers = {"Content-Type": "application/json"}
     last_error = ""
 
-    for model in models:
+    # 2. Slanje upita na prve dostupne modele
+    for model in models_to_try[:3]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         try:
             res = requests.post(url, headers=headers, json=body, timeout=12)
@@ -67,11 +83,6 @@ def jarvis_endpoint(payload: dict):
 
             if "error" in data:
                 last_error = data["error"].get("message", "Greška u odgovoru")
-            else:
-                last_error = f"Status {res.status_code}"
-
-        except requests.exceptions.Timeout:
-            last_error = "Zahtjev je trajao predugo."
         except Exception as e:
             last_error = str(e)
 
