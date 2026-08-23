@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# Dozvola za pristup s Netlifyja i bilo koje druge domene
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,8 +20,12 @@ def home():
 
 @app.post("/api/jarvis")
 def jarvis_endpoint(payload: dict):
-    user_text = payload.get("text", "")
+    user_text = payload.get("text", "").strip()
     
+    if not user_text:
+        return {"reply": "Niste poslali tekst."}
+
+    # Provjera API ključa iz Render okruženja
     api_key = (
         os.getenv("GEMINI_API_KEY") or 
         os.getenv("GOOGLE_API_KEY") or 
@@ -28,28 +33,48 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {"reply": "Greška: Ključ nije postavljen na Renderu."}
+        return {"reply": "Greška: API ključ nije postavljen u Environment Variables na Renderu."}
 
-    # Provjereni endpoint i model koji pouzdano radi
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    
-    headers = {"Content-Type": "application/json"}
+    # Provjereni besplatni Gemini modeli
+    models = ["gemini-1.5-flash", "gemini-2.0-flash"]
+
+    # Stroga uputa koja forsira brzi i direktan odgovor bez ikakvog uvoda
+    prompt = (
+        "Odgovori izravno, točno i najkraće moguće na postavio pitanje. "
+        "ZABRANJENO JE: pozdravljanje, uvodne fraze, navođenje tko pita i ponavljanje pitanja.\n\n"
+        f"Pitanje: {user_text}"
+    )
+
     body = {
         "contents": [{
-            "parts": [{"text": user_text}]
+            "parts": [{"text": prompt}]
         }]
     }
+    headers = {"Content-Type": "application/json"}
 
-    try:
-        res = requests.post(url, headers=headers, json=body, timeout=15)
-        data = res.json()
-        
-        if res.status_code == 200 and "candidates" in data:
-            reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            return {"reply": reply}
-        else:
-            error_msg = data.get("error", {}).get("message", "Nepoznata greška API-ja")
-            return {"reply": f"Google greška: {error_msg}"}
-            
-    except Exception as e:
-        return {"reply": f"Greška spajanja: {str(e)}"}
+    last_error = ""
+
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        try:
+            res = requests.post(url, headers=headers, json=body, timeout=12)
+            data = res.json()
+
+            if res.status_code == 200 and "candidates" in data and len(data["candidates"]) > 0:
+                parts = data["candidates"][0].get("content", {}).get("parts", [])
+                if parts and "text" in parts[0]:
+                    # Vraća samo čist i točan odgovor
+                    return {"reply": parts[0]["text"].strip()}
+
+            # Ako Google vrati grešku (npr. pogrešan ključ ili previše zahtjeva)
+            if "error" in data:
+                last_error = data["error"].get("message", "Greška u odgovoru")
+            else:
+                last_error = f"Status {res.status_code}"
+
+        except requests.exceptions.Timeout:
+            last_error = "Zahtjev je trajao predugo."
+        except Exception as e:
+            last_error = str(e)
+
+    return {"reply": f"API Greška: {last_error}"}
