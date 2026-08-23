@@ -28,44 +28,31 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {"reply": "Greška: GEMINI_API_KEY nije postavljen na Renderu.", "model_used": "Nema ključa"}
+        return {"reply": "Greška: Ključ nije postavljen."}
 
-    # 1. Automatski dohvaćamo točan popis modela koje tvoj API ključ podržava
-    models_to_try = []
-    try:
-        list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
-        res_list = requests.get(list_url, timeout=10).json()
-        
-        if "models" in res_list:
-            for m in res_list["models"]:
-                if "generateContent" in m.get("supportedGenerationMethods", []):
-                    name = m["name"].replace("models/", "")
-                    models_to_try.append(name)
-    except Exception:
-        pass
+    # Najbrži Flash modeli poredani po brzini
+    fast_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
 
-    # Rezervni nazivi ako popis ne prođe
-    if not models_to_try:
-        models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+    # Postavka koja prisiljava model na direktan i brz odgovor bez uvoda
+    body = {
+        "system_instruction": {
+            "parts": [{"text": "Daj samo izravan odgovor. Nemoj pozdravljati, nemoj ponavljati pitanje i nemoj pisati tko pita."}]
+        },
+        "contents": [{"parts": [{"text": user_text}]}]
+    }
+    headers = {"Content-Type": "application/json"}
 
-    last_error = ""
-
-    # 2. Isprobavamo modele s liste dok prvi ne odgovori
-    for model in models_to_try:
+    for model in fast_models:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        headers = {"Content-Type": "application/json"}
-        body = {"contents": [{"parts": [{"text": user_text}]}]}
-
         try:
-            res = requests.post(url, headers=headers, json=body, timeout=15)
-            data = res.json()
+            res = requests.post(url, headers=headers, json=body, timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    # Vraća isključivo čist tekst odgovora
+                    return {"reply": candidates[0]["content"]["parts"][0]["text"].strip()}
+        except Exception:
+            continue
 
-            if res.status_code == 200 and "candidates" in data and len(data["candidates"]) > 0:
-                reply = data["candidates"][0]["content"]["parts"][0]["text"]
-                return {"reply": reply, "model_used": model}
-            elif "error" in data:
-                last_error = f"[{model}] {data['error'].get('message', 'Greška')}"
-        except Exception as e:
-            last_error = str(e)
-
-    return {"reply": f"Greška pri spajanju s Googleom: {last_error}", "model_used": "Greška"}
+    return {"reply": "Privremena greška u spajanju."}
