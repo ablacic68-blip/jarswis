@@ -34,10 +34,10 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {"reply": "Greška: API ključ nije postavljen u Environment Variables na Renderu."}
+        return {"reply": "Greška: API ključ nije postavljen na Renderu."}
 
-    # Model ažuriran na Gemini 3.1 Pro s rezervnim opcijama
-    models = ["gemini-3.1-pro", "gemini-2.5-pro", "gemini-2.5-flash"]
+    # Postavljeno isključivo na Gemini 2.5 modele
+    models = ["gemini-2.5-flash", "gemini-2.5-pro"]
 
     prompt = (
         "Odgovori izravno, točno i najkraće moguće na postavljeno pitanje. "
