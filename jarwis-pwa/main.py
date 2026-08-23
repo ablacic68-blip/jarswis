@@ -1,5 +1,5 @@
 import os
-import requests
+import google.generativeai as genai
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,7 +21,6 @@ def home():
 def jarvis_endpoint(payload: dict):
     user_text = payload.get("text", "")
     
-    # Preuzimanje ključa iz Render Environment varijabli
     api_key = (
         os.getenv("GEMINI_API_KEY") or 
         os.getenv("GOOGLE_API_KEY") or 
@@ -30,25 +29,21 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {
-            "reply": "Greška: Nije pronađen API ključ u Render postavkama.", 
-            "model_used": "Nijedan"
-        }
+        return {"reply": "Greška: Nije pronađen API ključ u Render postavkama.", "model_used": "Nijedan"}
         
     try:
-        # Koristimo stabilni besplatni Gemini 1.5 Pro model
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}"
-        headers = {"Content-Type": "application/json"}
-        body = {"contents": [{"parts": [{"text": user_text}]}]}
+        genai.configure(api_key=api_key)
         
-        response = requests.post(url, headers=headers, json=body)
-        data = response.json()
-        
-        if "error" in data:
-            return {"reply": f"Google greška: {data['error'].get('message', 'Nepoznato')}", "model_used": "Greška"}
+        # Probaj primarni model
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(user_text)
+            return {"reply": response.text, "model_used": "Gemini 1.5 Flash"}
+        except Exception:
+            # Automatska zamjena na Pro verziju ako Flash nije dostupan
+            model = genai.GenerativeModel('gemini-1.5-pro')
+            response = model.generate_content(user_text)
+            return {"reply": response.text, "model_used": "Gemini 1.5 Pro"}
             
-        reply = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Nema odgovora.")
-        return {"reply": reply, "model_used": "Gemini 1.5 Pro"}
-        
     except Exception as e:
-        return {"reply": f"Greška na serveru: {str(e)}", "model_used": "Greška"}
+        return {"reply": f"Google SDK greška: {str(e)}", "model_used": "Greška"}
