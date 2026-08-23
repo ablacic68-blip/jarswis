@@ -34,11 +34,12 @@ def jarvis_endpoint(payload: dict):
     )
     
     if not api_key:
-        return {"reply": "Greška: API ključ nije postavljen na Renderu."}
+        return {"reply": "Greška: API ključ nije postavljen u Environment Variables na Renderu."}
 
-    # Postavljeno isključivo na Gemini 2.5 modele
-    models = ["gemini-2.5-flash", "gemini-2.5-pro"]
+    # Stabilni Gemini modeli
+    models = ["gemini-1.5-flash", "gemini-1.5-pro"]
 
+    # Stroga uputa koja forsira brzi i direktan odgovor bez uvodnih fraza
     prompt = (
         "Odgovori izravno, točno i najkraće moguće na postavljeno pitanje. "
         "ZABRANJENO JE: pozdravljanje, uvodne fraze, navođenje tko pita i ponavljanje pitanja.\n\n"
@@ -66,6 +67,11 @@ def jarvis_endpoint(payload: dict):
 
             if "error" in data:
                 last_error = data["error"].get("message", "Greška u odgovoru")
+            else:
+                last_error = f"Status {res.status_code}"
+
+        except requests.exceptions.Timeout:
+            last_error = "Zahtjev je trajao predugo."
         except Exception as e:
             last_error = str(e)
 
