@@ -1,207 +1,74 @@
 <!DOCTYPE html>
 <html lang="hr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JARVIS AI</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background-color: #0b0f19;
-      color: #e2e8f0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      height: 100vh;
-      padding: 30px 20px;
-    }
-    header { text-align: center; }
-    h1 { color: #38bdf8; font-size: 28px; letter-spacing: 2px; }
-    
-    .content {
-      width: 100%;
-      max-width: 500px;
-      text-align: center;
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    #status { color: #94a3b8; font-size: 16px; margin-bottom: 20px; }
-    #response {
-      background: #1e293b;
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid #334155;
-      font-size: 18px;
-      line-height: 1.5;
-      max-height: 250px;
-      overflow-y: auto;
-      text-align: left;
-      margin-bottom: 20px;
-    }
-
-    .controls { 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      width: 100%; 
-      max-width: 500px; 
-      gap: 15px; 
-    }
-    
-    .text-box {
-      display: flex;
-      width: 100%;
-      gap: 10px;
-    }
-    
-    .text-box input {
-      flex: 1;
-      padding: 14px 16px;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      background: #1e293b;
-      color: white;
-      font-size: 16px;
-      outline: none;
-    }
-    .text-box input:focus {
-      border-color: #38bdf8;
-    }
-    
-    .text-box button {
-      padding: 14px 22px;
-      border-radius: 8px;
-      border: none;
-      background: #0284c7;
-      color: white;
-      font-weight: bold;
-      font-size: 15px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .text-box button:hover {
-      background: #0369a1;
-    }
-
-    .mic-btn {
-      width: 65px;
-      height: 65px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #0284c7, #2563eb);
-      border: none;
-      color: white;
-      font-size: 26px;
-      cursor: pointer;
-      box-shadow: 0 0 18px rgba(2, 132, 199, 0.4);
-      transition: transform 0.2s;
-    }
-    .mic-btn:active { transform: scale(0.95); }
-    .listening { animation: pulse 1.5s infinite; background: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.08); }
-      100% { transform: scale(1); }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS AI</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .chat-container { width: 100%; max-width: 600px; background: #1e293b; border-radius: 12px; display: flex; flex-direction: column; height: 80vh; box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden; }
+        .chat-header { background: #0f172a; padding: 15px 20px; border-bottom: 1px solid #334155; text-align: center; font-size: 1.2rem; font-weight: bold; color: #38bdf8; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .message { padding: 10px 14px; border-radius: 8px; max-width: 80%; line-height: 1.4; word-wrap: break-word; }
+        .user-message { background: #0284c7; color: white; align-self: flex-end; }
+        .bot-message { background: #334155; color: #f1f5f9; align-self: flex-start; }
+        .chat-input-area { display: flex; padding: 15px; background: #0f172a; gap: 10px; border-top: 1px solid #334155; }
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: white; outline: none; }
+        button { padding: 12px 20px; background: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0369a1; }
+    </style>
 </head>
 <body>
 
-  <header>
-    <h1>J.A.R.V.I.S.</h1>
-  </header>
-
-  <div class="content">
-    <div id="status">Upišite poruku ili pritisnite mikrofon...</div>
-    <div id="response">Spreman za rad.</div>
-  </div>
-
-  <div class="controls">
-    <!-- Primary Option: Text Input -->
-    <div class="text-box">
-      <input type="text" id="userInput" placeholder="Napiši poruku JARVIS-u..." onkeydown="if(event.key==='Enter') sendText()">
-      <button onclick="sendText()">Pošalji</button>
+<div class="chat-container">
+    <div class="chat-header">J.A.R.V.I.S. AI</div>
+    <div class="chat-messages" id="chatMessages">
+        <div class="message bot-message">Bok! Ja sam JARVIS. Kako ti mogu pomoći danas?</div>
     </div>
-    
-    <!-- Secondary Option: Voice Input -->
-    <button id="micBtn" class="mic-btn" onclick="toggleListening()" title="Glasovni unos">🎙️</button>
-  </div>
+    <div class="chat-input-area">
+        <input type="text" id="userInput" placeholder="Upiši poruku..." onkeydown="if(event.key==='Enter') posaljiPoruku()">
+        <button onclick="posaljiPoruku()">Pošalji</button>
+    </div>
+</div>
 
-  <script>
-    const BACKEND_URL = "https://jarswis.onrender.com/api/jarvis";
+<script>
+async function posaljiPoruku() {
+    const input = document.getElementById("userInput");
+    const container = document.getElementById("chatMessages");
+    const tekst = input.value.trim();
 
-    async function sendText() {
-      const input = document.getElementById('userInput');
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = '';
-      await processRequest(text);
-    }
+    if (!tekst) return;
 
-    async function processRequest(text) {
-      document.getElementById('status').innerText = `Šaljem: "${text}"`;
-      document.getElementById('response').innerText = "JARVIS razmišlja...";
+    // Prikazi poruku korisnika
+    container.innerHTML += `<div class="message user-message">${tekst}</div>`;
+    input.value = "";
+    container.scrollTop = container.scrollHeight;
 
-      try {
-        const res = await fetch(BACKEND_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text })
+    // Prikazi status ucitavanja
+    const tempBotMsg = document.createElement("div");
+    tempBotMsg.className = "message bot-message";
+    tempBotMsg.innerText = "JARVIS razmišlja...";
+    container.appendChild(tempBotMsg);
+    container.scrollTop = container.scrollHeight;
+
+    try {
+        const response = await fetch("https://jarswis.onrender.com/api/jarvis", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: tekst })
         });
-        
-        const data = await res.json();
-        document.getElementById('response').innerText = data.reply;
-        document.getElementById('status').innerText = `Model: ${data.model_used || 'Spreman'}`;
 
-        speakResponse(data.reply);
-      } catch (err) {
-        document.getElementById('response').innerText = "Pogreška pri spajanju na server.";
-        document.getElementById('status').innerText = "Provjerite je li Render aktiviran.";
-      }
+        const data = await response.json();
+        tempBotMsg.innerText = data.reply || "Nema odgovora.";
+    } catch (error) {
+        tempBotMsg.innerText = "Greška pri spajanju na poslužitelj.";
+        tempBotMsg.style.color = "#ef4444";
     }
+    
+    container.scrollTop = container.scrollHeight;
+}
+</script>
 
-    let recognition;
-    let isListening = false;
-
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.lang = 'hr-HR';
-
-      recognition.onstart = () => {
-        isListening = true;
-        document.getElementById('micBtn').classList.add('listening');
-        document.getElementById('status').innerText = "Slušam vas...";
-      };
-
-      recognition.onend = () => {
-        isListening = false;
-        document.getElementById('micBtn').classList.remove('listening');
-      };
-
-      recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript;
-        processRequest(text);
-      };
-    }
-
-    function toggleListening() {
-      if (!recognition) return alert("Glasovni unos nije podržan u ovom pregledniku.");
-      isListening ? recognition.stop() : recognition.start();
-    }
-
-    function speakResponse(text) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'hr-HR';
-        window.speechSynthesis.speak(utterance);
-      }
-    }
-  </script>
 </body>
 </html>
