@@ -2,15 +2,12 @@
 <html lang="hr">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport prilagođen za mobitele da spriječi neželjeno zumiranje i skaliranje -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>JARVIS Mobile</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        /* Osnovni reset i font */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        /* Fiksiranje cijelog layouta na ekran mobitela (nema skrolanja tijela stranice) */
         body, html {
             height: 100dvh;
             width: 100vw;
@@ -21,7 +18,6 @@
             flex-direction: column;
         }
 
-        /* Glavni spremnik koji drži cijelu aplikaciju unutar visine ekrana */
         .app-container {
             display: flex;
             flex-direction: column;
@@ -32,7 +28,6 @@
             position: relative;
         }
         
-        /* Zaglavlje */
         .header {
             padding: 12px 16px;
             background: rgba(15, 23, 42, 0.95);
@@ -51,7 +46,6 @@
         .tts-toggle { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; padding: 6px 10px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; }
         .tts-toggle.active { color: #38bdf8; border-color: #38bdf8; }
 
-        /* Padajući izbornik na 3 točkice */
         .more-dropdown {
             display: none;
             position: absolute;
@@ -75,12 +69,8 @@
             gap: 8px;
             transition: background 0.2s;
         }
-        .dropdown-item:hover, .dropdown-item:active {
-            background: rgba(56, 189, 248, 0.15);
-            color: #38bdf8;
-        }
+        .dropdown-item:hover, .dropdown-item:active { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
 
-        /* Bočna traka (Sidebar) */
         .sidebar-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 20; }
         .sidebar {
             position: absolute; top: 0; left: -280px; width: 280px; height: 100%;
@@ -95,31 +85,36 @@
         .chat-item.active { border-color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
         .chat-item-del { color: #ef4444; background: none; border: none; font-size: 0.9rem; cursor: pointer; padding: 2px 6px; }
 
-        /* Središnji dio za poruke - jedini element koji se skrola */
-        .chat-box {
-            flex: 1;
-            padding: 16px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+        .chat-box { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         .msg { max-width: 88%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.45; word-wrap: break-word; }
         .user-msg { align-self: flex-end; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
         .bot-msg { align-self: flex-start; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); color: #e2e8f0; border-bottom-left-radius: 4px; white-space: pre-wrap; }
         .action-link { display: inline-block; margin-top: 8px; padding: 8px 14px; background: #0284c7; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.85rem; }
 
-        /* Donja traka za unos - fiksirana na dnu ekrana */
-        .input-bar {
-            padding: 10px 12px;
-            background: #0f172a;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        /* Traka s prijedlozima riječi (Suggestions bar) */
+        .suggestions-bar {
+            display: none;
+            gap: 8px;
+            padding: 6px 12px;
+            background: #0b1120;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+            white-space: nowrap;
             flex-shrink: 0;
         }
+        .suggestion-chip {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .input-bar { padding: 10px 12px; background: #0f172a; border-top: 1px solid rgba(255, 255, 255, 0.08); flex-shrink: 0; }
         .action-btns { display: flex; gap: 6px; align-items: center; }
-        .icon-btn { background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.12); color: #f1f5f9; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; }
-        
-        /* 16px font-size sprječava automatsko zumiranje na iPhoneu */
         input[type="text"] { flex: 1; height: 42px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.12); padding: 0 12px; border-radius: 12px; color: white; font-size: 16px; outline: none; }
         .send-btn { background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; width: 42px; height: 42px; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; flex-shrink: 0; }
     </style>
@@ -127,10 +122,8 @@
 <body>
 
     <div class="app-container">
-        
         <div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
 
-        <!-- Bočni izbornik za povijest razgovora -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3>Razgovori</h3>
@@ -140,7 +133,6 @@
             <div class="chat-list" id="chatList"></div>
         </div>
 
-        <!-- Zaglavlje aplikacije -->
         <div class="header">
             <div class="header-left">
                 <button class="menu-btn" onclick="toggleMenu()">☰</button>
@@ -152,7 +144,6 @@
             
             <div class="header-right">
                 <button class="tts-toggle" id="ttsToggle" onclick="toggleTTS()">🔇</button>
-                <!-- Gumb s 3 točkice za brzi meni -->
                 <button class="menu-btn" onclick="toggleMoreMenu(event)">⋮</button>
                 
                 <div class="more-dropdown" id="moreDropdown">
@@ -161,17 +152,17 @@
             </div>
         </div>
 
-        <!-- Središnji dio gdje se izmjenjuju poruke -->
         <div class="chat-box" id="chatBox"></div>
 
-        <!-- Donja traka za unos teksta i naredbi -->
+        <!-- Dinamička traka prijedloga za tipkanje -->
+        <div class="suggestions-bar" id="suggestionsBar"></div>
+
         <div class="input-bar">
             <div class="action-btns">
-                <input type="text" id="userInput" placeholder="Pošalji poruku ili naredbu..." onkeydown="if(event.key === 'Enter') sendMessage()">
+                <input type="text" id="userInput" placeholder="Poruka ili naredba..." oninput="handleTypingSuggestions()" onkeydown="if(event.key === 'Enter') sendMessage()">
                 <button class="send-btn" onclick="sendMessage()">➤</button>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -179,9 +170,24 @@
         let activeChatId = null;
         let ttsEnabled = false;
 
-        window.onload = function() {
-            loadChats();
+        // Rječnik čestih fraza i naredbi za automatske prijedloge
+        const commonWords = [
+            "nazovi", "pošalji poruku", "traži na googleu", "otvori instagram", 
+            "otvori youtube", "otvori whatsapp", "otvori tiktok", "otvori facebook",
+            "instaliraj", "kakvo je vrijeme", "pomoć", "otvori trgovinu"
+        ];
+
+        // Protokoli i direktni linkovi za popularne aplikacije
+        const appProtocols = {
+            "instagram": { scheme: "instagram://", store: "https://play.google.com/store/apps/details?id=com.instagram.android" },
+            "youtube": { scheme: "vnd.youtube://", store: "https://play.google.com/store/apps/details?id=com.google.android.youtube" },
+            "whatsapp": { scheme: "whatsapp://", store: "https://play.google.com/store/apps/details?id=com.whatsapp" },
+            "facebook": { scheme: "fb://", store: "https://play.google.com/store/apps/details?id=com.facebook.katana" },
+            "tiktok": { scheme: "snssdk1128://", store: "https://play.google.com/store/apps/details?id=com.zhiliaoapp.musically" },
+            "snapchat": { scheme: "snapchat://", store: "https://play.google.com/store/apps/details?id=com.snapchat.android" }
         };
+
+        window.onload = function() { loadChats(); };
 
         function toggleMoreMenu(e) {
             e.stopPropagation();
@@ -189,10 +195,7 @@
             drop.style.display = drop.style.display === "block" ? "none" : "block";
         }
 
-        function hideMoreMenu() {
-            document.getElementById("moreDropdown").style.display = "none";
-        }
-
+        function hideMoreMenu() { document.getElementById("moreDropdown").style.display = "none"; }
         document.addEventListener("click", hideMoreMenu);
 
         function toggleMenu() {
@@ -210,15 +213,13 @@
             else { activeChatId = chats[0].id; renderChatList(); renderMessages(); }
         }
 
-        function saveChats() {
-            localStorage.setItem("jarvis_chats", JSON.stringify(chats));
-        }
+        function saveChats() { localStorage.setItem("jarvis_chats", JSON.stringify(chats)); }
 
         function createNewChat() {
             const newChat = {
                 id: Date.now().toString(),
                 title: "Novi razgovor",
-                messages: [{ sender: "bot", text: "Bok! Spreman sam. Reci mi što želiš napraviti." }]
+                messages: [{ sender: "bot", text: "Bok! Mogu tražiti na Googleu, otvarati aplikacije, zvati i slati poruke. Što radimo?" }]
             };
             chats.unshift(newChat);
             activeChatId = newChat.id;
@@ -228,21 +229,13 @@
             if (document.getElementById("sidebar").classList.contains("open")) toggleMenu();
         }
 
-        function switchChat(id) {
-            activeChatId = id;
-            renderChatList();
-            renderMessages();
-            toggleMenu();
-        }
+        function switchChat(id) { activeChatId = id; renderChatList(); renderMessages(); toggleMenu(); }
 
         function deleteChat(id, event) {
             event.stopPropagation();
             chats = chats.filter(c => c.id !== id);
             if (chats.length === 0) createNewChat();
-            else {
-                if (activeChatId === id) activeChatId = chats[0].id;
-                saveChats(); renderChatList(); renderMessages();
-            }
+            else { if (activeChatId === id) activeChatId = chats[0].id; saveChats(); renderChatList(); renderMessages(); }
         }
 
         function renderChatList() {
@@ -252,10 +245,8 @@
                 const div = document.createElement("div");
                 div.className = `chat-item ${chat.id === activeChatId ? 'active' : ''}`;
                 div.onclick = () => switchChat(chat.id);
-                div.innerHTML = `
-                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">${chat.title}</span>
-                    <button class="chat-item-del" onclick="deleteChat('${chat.id}', event)">✕</button>
-                `;
+                div.innerHTML = `<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">${chat.title}</span>
+                                 <button class="chat-item-del" onclick="deleteChat('${chat.id}', event)">✕</button>`;
                 listEl.appendChild(div);
             });
         }
@@ -275,6 +266,7 @@
                     const btn = document.createElement("a");
                     btn.className = "action-link";
                     btn.href = msg.actionBtn.url;
+                    btn.target = "_blank";
                     btn.textContent = msg.actionBtn.label;
                     div.appendChild(document.createElement("br"));
                     div.appendChild(btn);
@@ -284,6 +276,38 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+        /* Prijedlozi riječi (Autocomplete Logic) */
+        function handleTypingSuggestions() {
+            const input = document.getElementById("userInput");
+            const val = input.value.toLowerCase().trim();
+            const bar = document.getElementById("suggestionsBar");
+
+            if (!val) { bar.style.display = "none"; return; }
+
+            const matches = commonWords.filter(w => w.toLowerCase().startsWith(val) || w.toLowerCase().includes(val));
+            
+            if (matches.length > 0) {
+                bar.innerHTML = "";
+                matches.slice(0, 4).forEach(match => {
+                    const chip = document.createElement("div");
+                    chip.className = "suggestion-chip";
+                    chip.textContent = match;
+                    chip.onclick = () => applySuggestion(match);
+                    bar.appendChild(chip);
+                });
+                bar.style.display = "flex";
+            } else {
+                bar.style.display = "none";
+            }
+        }
+
+        function applySuggestion(text) {
+            const input = document.getElementById("userInput");
+            input.value = text + " ";
+            document.getElementById("suggestionsBar").style.display = "none";
+            input.focus();
+        }
+
         function toggleTTS() {
             ttsEnabled = !ttsEnabled;
             const btn = document.getElementById("ttsToggle");
@@ -291,11 +315,13 @@
             btn.textContent = ttsEnabled ? "🔊" : "🔇";
         }
 
+        /* Glavni pokretač naredbi: Google Pretraga, Otvaranje Aplikacija, SMS i Pozivi */
         function sendMessage() {
             const input = document.getElementById("userInput");
             const text = input.value.trim();
             if (!text) return;
 
+            document.getElementById("suggestionsBar").style.display = "none";
             const activeChat = chats.find(c => c.id === activeChatId);
             if (!activeChat) return;
 
@@ -309,29 +335,57 @@
             renderMessages();
             input.value = "";
 
-            // Simulacija odgovora i provjera akcija (pozivi, poruke, aplikacije)
             setTimeout(() => {
-                let replyText = "Primljeno: " + text;
+                let replyText = "Obrađujem upit...";
                 let actionBtn = null;
-
                 const lower = text.toLowerCase();
-                if (lower.startsWith("nazovi ")) {
+
+                // 1. Google Pretraga
+                if (lower.includes("google") || lower.startsWith("traži ") || lower.startsWith("pretraži ")) {
+                    const query = text.replace(/google|traži|pretraži/gi, "").trim();
+                    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(query || text)}`;
+                    replyText = `Otvaram Google pretragu za: "${query || text}"`;
+                    actionBtn = { label: "🔍 Otvori Google Pretragu", url: googleUrl };
+                    window.open(googleUrl, "_blank");
+                } 
+                // 2. Otvaranje Aplikacija
+                else if (lower.startsWith("otvori ") || lower.startsWith("pokreni ")) {
+                    const appName = text.replace(/otvori|pokreni/gi, "").trim().toLowerCase();
+                    
+                    if (appProtocols[appName]) {
+                        replyText = `Otvaram aplikaciju ${appName}...`;
+                        const targetUrl = appProtocols[appName].scheme;
+                        actionBtn = { label: `📱 Otvori ${appName}`, url: targetUrl };
+                        window.location.href = targetUrl;
+                    } else {
+                        const storeUrl = `https://play.google.com/store/search?q=${encodeURIComponent(appName)}&c=apps`;
+                        replyText = `Tražim "${appName}" na Play Storeu...`;
+                        actionBtn = { label: `📱 Potraži ${appName} na Play Store`, url: storeUrl };
+                        window.open(storeUrl, "_blank");
+                    }
+                }
+                // 3. Pozivi
+                else if (lower.startsWith("nazovi ")) {
                     const num = text.replace("nazovi", "").trim();
-                    replyText = `Otvaram poziv za: ${num}`;
+                    replyText = `Pokrećem poziv: ${num}`;
                     actionBtn = { label: "📞 Pozovi", url: "tel:" + num };
                     window.location.href = "tel:" + num;
-                } else if (lower.startsWith("aplikacija ") || lower.startsWith("otvori ")) {
-                    const app = text.replace("aplikacija", "").replace("otvori", "").trim();
-                    replyText = `Tražim aplikaciju: ${app}`;
-                    const url = `https://play.google.com/store/search?q=${encodeURIComponent(app)}&c=apps`;
-                    actionBtn = { label: "📱 Otvori Play Store", url: url };
-                    window.open(url, "_blank");
+                }
+                // 4. SMS
+                else if (lower.startsWith("pošalji poruku ") || lower.startsWith("sms ")) {
+                    const num = text.replace(/pošalji poruku|sms/gi, "").trim();
+                    replyText = `Otvaram SMS za broj: ${num}`;
+                    actionBtn = { label: "💬 Pošalji SMS", url: "sms:" + num };
+                    window.location.href = "sms:" + num;
+                } 
+                else {
+                    replyText = `Razumio sam: "${text}". Ako želiš potražiti na internetu, napiši "traži [pojam]" ili "otvori [aplikacija]".`;
                 }
 
                 activeChat.messages.push({ sender: "bot", text: replyText, actionBtn: actionBtn });
                 saveChats();
                 renderMessages();
-            }, 600);
+            }, 400);
         }
     </script>
 </body>
