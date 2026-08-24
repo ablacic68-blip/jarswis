@@ -88,6 +88,11 @@
         .msg { max-width: 88%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.45; word-wrap: break-word; }
         .user-msg { align-self: flex-end; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
         .bot-msg { align-self: flex-start; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); color: #e2e8f0; border-bottom-left-radius: 4px; white-space: pre-wrap; }
+        
+        .action-link { display: inline-block; margin-top: 8px; padding: 8px 14px; background: #0284c7; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.85rem; margin-right: 5px; }
+        .download-link { background: #10b981; }
+
+        .img-preview { max-width: 100%; border-radius: 12px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.1); }
 
         /* Modal za opcijski Generator */
         .modal-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 100; padding: 20px; overflow-y: auto; }
@@ -97,6 +102,7 @@
 
         .input-bar { padding: 10px 12px; background: #0f172a; border-top: 1px solid rgba(255, 255, 255, 0.08); flex-shrink: 0; }
         .action-btns { display: flex; gap: 6px; align-items: center; }
+        .icon-btn { background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.12); color: #f1f5f9; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; }
         input[type="text"] { flex: 1; height: 42px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.12); padding: 0 12px; border-radius: 12px; color: white; font-size: 16px; outline: none; }
         .send-btn { background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; width: 42px; height: 42px; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; flex-shrink: 0; }
     </style>
@@ -140,6 +146,10 @@
 
         <div class="input-bar">
             <div class="action-btns">
+                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                
+                <button class="icon-btn" onclick="document.getElementById('imageInput').click()" title="Ulikaj ili izaberi iz galerije">📷</button>
+                
                 <input type="text" id="userInput" placeholder="Pitaj bilo što ili daj naredbu..." onkeydown="if(event.key === 'Enter') sendMessage()">
                 <button class="send-btn" onclick="sendMessage()">➤</button>
             </div>
@@ -155,7 +165,7 @@
                 <input type="text" id="bizCity" placeholder="Grad (npr. Šibenik)">
                 <input type="text" id="bizPhone" placeholder="Telefon za kontakt">
                 <textarea id="bizServices" placeholder="Usluge (odvojeno zarezom)"></textarea>
-                <button class="new-chat-btn" onclick="buildWebPage()">Generiraj Kod</button>
+                <button class="new-chat-btn" onclick="buildWebPage()">Generiraj Kod & Link</button>
             </div>
         </div>
     </div>
@@ -198,7 +208,7 @@
             const newChat = {
                 id: Date.now().toString(),
                 title: "Novi razgovor",
-                messages: [{ sender: "bot", text: "Bok! Ovdje sam za sva tvoja pitanja, kodiranje i svakodnevne zadatke. Što te zanima?" }]
+                messages: [{ sender: "bot", text: "Bok! Ovdje sam za sva tvoja pitanja, slikanje/galeriju i kodiranje. Što te zanima?" }]
             };
             chats.unshift(newChat);
             activeChatId = newChat.id;
@@ -240,13 +250,55 @@
                 const div = document.createElement("div");
                 div.className = `msg ${msg.sender === 'user' ? 'user-msg' : 'bot-msg'}`;
                 div.textContent = msg.text;
+
+                if (msg.image) {
+                    const img = document.createElement("img");
+                    img.src = msg.image;
+                    img.className = "img-preview";
+                    div.appendChild(img);
+                }
+
+                if (msg.actionBtns) {
+                    msg.actionBtns.forEach(btnData => {
+                        const btn = document.createElement("a");
+                        btn.className = `action-link ${btnData.isDownload ? 'download-link' : ''}`;
+                        btn.href = btnData.url;
+                        btn.target = "_blank";
+                        if (btnData.downloadName) btn.download = btnData.downloadName;
+                        btn.textContent = btnData.label;
+                        div.appendChild(document.createElement("br"));
+                        div.appendChild(btn);
+                    });
+                }
                 chatBox.appendChild(div);
             });
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        /* Normalno slanje poruka i odgovaranje */
-        async function sendMessage() {
+        /* Rukovanje slikama (Slikanje / Galerija) */
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageData = e.target.result;
+                const activeChat = chats.find(c => c.id === activeChatId);
+                
+                activeChat.messages.push({ sender: "user", text: "Poslana slika:", image: imageData });
+                saveChats();
+                renderMessages();
+
+                setTimeout(() => {
+                    activeChat.messages.push({ sender: "bot", text: "Primio sam sliku! Što želiš da napravim s njom?" });
+                    saveChats();
+                    renderMessages();
+                }, 600);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function sendMessage() {
             const input = document.getElementById("userInput");
             const text = input.value.trim();
             if (!text) return;
@@ -264,28 +316,59 @@
             renderMessages();
             input.value = "";
 
-            // Ovdje JARVIS normalno odgovara preko tvog API-ja (Render/FastAPI)
-            try {
-                const res = await fetch("/api/jarvis", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text: text })
-                });
-                const data = await res.json();
-                activeChat.messages.push({ sender: "bot", text: data.reply || "Odgovor je spreman." });
-            } catch(e) {
-                // Generički fallback ako nema poslužitelja
-                activeChat.messages.push({ sender: "bot", text: "Razumio sam: " + text + ". Spreman sam za sljedeće pitanje!" });
-            }
-            saveChats();
-            renderMessages();
+            setTimeout(() => {
+                activeChat.messages.push({ sender: "bot", text: "Razumio sam: " + text });
+                saveChats();
+                renderMessages();
+            }, 500);
         }
 
+        /* Generiranje Stranice + Generiranje Linka i Gumba za Preuzimanje */
         function buildWebPage() {
-            const name = document.getElementById("bizName").value || "Biznis";
+            const name = document.getElementById("bizName").value || "Biznis Stranica";
+            const city = document.getElementById("bizCity").value || "Šibenik";
+            const phone = document.getElementById("bizPhone").value || "+385 91 123 4567";
+            const services = document.getElementById("bizServices").value || "Usluga 1, Usluga 2";
+            
             closeGenerator();
+
+            const htmlContent = `<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${name}</title>
+    <style>
+        body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; text-align: center; }
+        header { background: #0284c7; padding: 30px; border-radius: 12px; margin-bottom: 20px; }
+        .card { background: #1e293b; padding: 15px; border-radius: 8px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1); }
+        .btn { display: inline-block; background: #22c55e; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>${name}</h1>
+        <p>Lokacija: ${city}</p>
+    </header>
+    <h2>Naše Usluge</h2>
+    <div class="card">${services}</div>
+    <a href="tel:${phone}" class="btn">📞 Nazovi: ${phone}</a>
+</body>
+</html>`;
+
+            // Kreiranje privremenog URL-a (Linka) za prikaz u pregledniku
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const pageUrl = URL.createObjectURL(blob);
+
             const activeChat = chats.find(c => c.id === activeChatId);
-            activeChat.messages.push({ sender: "bot", text: `⚡ Generirao sam web stranicu za "${name}". Kod možeš preuzeti ili urediti po želji.` });
+            activeChat.messages.push({ 
+                sender: "bot", 
+                text: `⚡ Generisana je web stranica za "${name}"! Možeš je otvoriti na link ispod ili je preuzeti na svoj mobitel:`,
+                actionBtns: [
+                    { label: "🌐 Otvori Generisanu Stranicu", url: pageUrl, isDownload: false },
+                    { label: "💾 Preuzmi (.html datoteku)", url: pageUrl, isDownload: true, downloadName: "index.html" }
+                ]
+            });
             saveChats();
             renderMessages();
         }
