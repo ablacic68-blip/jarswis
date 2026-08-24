@@ -85,7 +85,7 @@
         .chat-item-del { color: #ef4444; background: none; border: none; font-size: 0.9rem; cursor: pointer; padding: 2px 6px; }
 
         .chat-box { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .msg { max-width: 88%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.45; word-wrap: break-word; }
+        .msg { max-width: 90%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.45; word-wrap: break-word; }
         .user-msg { align-self: flex-end; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
         .bot-msg { align-self: flex-start; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); color: #e2e8f0; border-bottom-left-radius: 4px; white-space: pre-wrap; }
         
@@ -93,6 +93,7 @@
         .download-link { background: #10b981; }
 
         .img-preview { max-width: 100%; border-radius: 12px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        .map-frame { width: 100%; height: 220px; border: none; border-radius: 12px; margin-top: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 
         /* Modal za opcijski Generator */
         .modal-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 100; padding: 20px; overflow-y: auto; }
@@ -112,7 +113,6 @@
     <div class="app-container">
         <div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
 
-        <!-- Bočni izbornik -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3>JARVIS Meni</h3>
@@ -125,7 +125,6 @@
             <div class="chat-list" id="chatList"></div>
         </div>
 
-        <!-- Zaglavlje -->
         <div class="header">
             <div class="header-left">
                 <button class="menu-btn" onclick="toggleMenu()">☰</button>
@@ -144,21 +143,18 @@
             </div>
         </div>
 
-        <!-- Glavni Chat Box -->
         <div class="chat-box" id="chatBox"></div>
 
-        <!-- Donja traka za unos (Kamera / Galerija / Tekst / Slanje) -->
         <div class="input-bar">
             <div class="action-btns">
                 <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-                <button class="icon-btn" onclick="document.getElementById('imageInput').click()" title="Ulikaj ili izaberi iz galerije">📷</button>
+                <button class="icon-btn" onclick="document.getElementById('imageInput').click()" title="Uslikaj ili izaberi iz galerije">📷</button>
                 
-                <input type="text" id="userInput" placeholder="Pitaj bilo što ili daj naredbu..." onkeydown="if(event.key === 'Enter') sendMessage()">
+                <input type="text" id="userInput" placeholder="Pitaj za vrijeme, lokaciju, kartu ili uputstvo..." onkeydown="if(event.key === 'Enter') sendMessage()">
                 <button class="send-btn" onclick="sendMessage()">➤</button>
             </div>
         </div>
 
-        <!-- Sakriveni Modal za Generator -->
         <div class="modal-overlay" id="genModal">
             <div class="modal-card">
                 <div class="modal-header">
@@ -177,8 +173,24 @@
     <script>
         let chats = [];
         let activeChatId = null;
+        let currentLocation = "Šibenik, Hrvatska"; // Osnovna/Fallback lokacija
 
-        window.onload = function() { loadChats(); };
+        window.onload = function() { 
+            loadChats();
+            initLocation();
+        };
+
+        // Automatsko dohvaćanje GPS lokacije
+        function initLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        currentLocation = `Koordinate: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+                    },
+                    (err) => { console.log("GPS nedostupan, koristi se zadani grad."); }
+                );
+            }
+        }
 
         function toggleMoreMenu(e) {
             e.stopPropagation();
@@ -212,7 +224,7 @@
             const newChat = {
                 id: Date.now().toString(),
                 title: "Novi razgovor",
-                messages: [{ sender: "bot", text: "Bok! Spreman sam. Pitaj me bilo što, pošalji sliku ili otvori generator iz izbornika kada zatreba." }]
+                messages: [{ sender: "bot", text: "Bok! Znam točno vrijeme i lokaciju, prikazujem karte i odgovaram beskompromisno na sva pitanja. Kako ti mogu pomoći?" }]
             };
             chats.unshift(newChat);
             activeChatId = newChat.id;
@@ -262,6 +274,15 @@
                     div.appendChild(img);
                 }
 
+                // Prikaz Karta Iframe-a
+                if (msg.mapQuery) {
+                    const iframe = document.createElement("iframe");
+                    iframe.className = "map-frame";
+                    iframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(msg.mapQuery)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+                    div.appendChild(document.createElement("br"));
+                    div.appendChild(iframe);
+                }
+
                 if (msg.actionBtns) {
                     msg.actionBtns.forEach(btnData => {
                         const btn = document.createElement("a");
@@ -301,7 +322,8 @@
             reader.readAsDataURL(file);
         }
 
-        function sendMessage() {
+        // Glavna logika slanja i obrade pitanja (Vrijeme, Karta, Lokacija, Backend)
+        async function sendMessage() {
             const input = document.getElementById("userInput");
             const text = input.value.trim();
             if (!text) return;
@@ -319,11 +341,76 @@
             renderMessages();
             input.value = "";
 
-            setTimeout(() => {
-                activeChat.messages.push({ sender: "bot", text: "Primljeno: " + text + ". Spreman za daljnje akcije." });
-                saveChats();
-                renderMessages();
-            }, 500);
+            const lowerText = text.toLowerCase();
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('hr-HR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateString = now.toLocaleDateString('hr-HR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            // 1. Pitanje o vremenu / satu / datumu
+            if (lowerText.includes("sat") || lowerText.includes("vrijeme") || lowerText.includes("vrime") || lowerText.includes("datum")) {
+                setTimeout(() => {
+                    activeChat.messages.push({ 
+                        sender: "bot", 
+                        text: `🕒 Trenutno vrijeme: ${timeString}\n📅 Datum: ${dateString}` 
+                    });
+                    saveChats();
+                    renderMessages();
+                }, 400);
+                return;
+            }
+
+            // 2. Pitanje gdje se nalazi neka lokacija ili traženje karte
+            if (lowerText.includes("gdje se nalazi") || lowerText.includes("karta") || lowerText.includes("mapa") || lowerText.includes("lokacij")) {
+                let locationQuery = text.replace(/gdje se nalazi|otvori kartu|prikaži kartu|karta|mapa|lokacija/gi, "").trim();
+                if (!locationQuery) locationQuery = currentLocation;
+
+                setTimeout(() => {
+                    activeChat.messages.push({ 
+                        sender: "bot", 
+                        text: `📍 Prikazujem lokaciju na karti za: "${locationQuery}"`,
+                        mapQuery: locationQuery,
+                        actionBtns: [{
+                            label: "🗺️ Otvori u Google Maps Navigaciji",
+                            url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationQuery)}`,
+                            isDownload: false
+                        }]
+                    });
+                    saveChats();
+                    renderMessages();
+                }, 400);
+                return;
+            }
+
+            // 3. Standardni poziv prema tvom AI Backend serveru za ostala pitanja
+            const loadingId = Date.now();
+            activeChat.messages.push({ sender: "bot", text: "Razmišljam...", id: loadingId });
+            renderMessages();
+
+            try {
+                const res = await fetch("https://tvoj-backend-url.onrender.com/api/jarvis", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        prompt: text, 
+                        currentTime: timeString, 
+                        currentDate: dateString, 
+                        userLocation: currentLocation 
+                    })
+                });
+
+                const data = await res.json();
+                const botReply = data.reply || data.response || "Odgovor je spreman.";
+
+                activeChat.messages = activeChat.messages.filter(m => m.id !== loadingId);
+                activeChat.messages.push({ sender: "bot", text: botReply });
+
+            } catch(e) {
+                activeChat.messages = activeChat.messages.filter(m => m.id !== loadingId);
+                activeChat.messages.push({ sender: "bot", text: "Pogreška pri spajanju na poslužitelj. Provjerite vezu." });
+            }
+
+            saveChats();
+            renderMessages();
         }
 
         function buildWebPage() {
