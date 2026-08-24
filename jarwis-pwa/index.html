@@ -112,6 +112,7 @@
     <div class="app-container">
         <div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
 
+        <!-- Bočni izbornik -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3>JARVIS Meni</h3>
@@ -124,6 +125,7 @@
             <div class="chat-list" id="chatList"></div>
         </div>
 
+        <!-- Zaglavlje -->
         <div class="header">
             <div class="header-left">
                 <button class="menu-btn" onclick="toggleMenu()">☰</button>
@@ -142,18 +144,21 @@
             </div>
         </div>
 
+        <!-- Glavni Chat Box -->
         <div class="chat-box" id="chatBox"></div>
 
+        <!-- Donja traka za unos -->
         <div class="input-bar">
             <div class="action-btns">
                 <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                 <button class="icon-btn" onclick="document.getElementById('imageInput').click()" title="Uslikaj ili izaberi iz galerije">📷</button>
                 
-                <input type="text" id="userInput" placeholder="Pitaj za vrijeme, lokaciju, kartu ili uputstvo..." onkeydown="if(event.key === 'Enter') sendMessage()">
+                <input type="text" id="userInput" placeholder="Pitaj bilo što..." onkeydown="if(event.key === 'Enter') sendMessage()">
                 <button class="send-btn" onclick="sendMessage()">➤</button>
             </div>
         </div>
 
+        <!-- Modal za Generator -->
         <div class="modal-overlay" id="genModal">
             <div class="modal-card">
                 <div class="modal-header">
@@ -185,7 +190,7 @@
                     (pos) => {
                         currentLocation = `Koordinate: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
                     },
-                    (err) => { console.log("GPS nedostupan, koristi se zadani grad."); }
+                    (err) => { console.log("GPS nedostupan."); }
                 );
             }
         }
@@ -222,7 +227,7 @@
             const newChat = {
                 id: Date.now().toString(),
                 title: "Novi razgovor",
-                messages: [{ sender: "bot", text: "Bok! Znam točno vrijeme i lokaciju, prikazujem karte i odgovaram na sva pitanja. Kako ti mogu pomoći?" }]
+                messages: [{ sender: "bot", text: "Bok! Ja sam JARVIS. Kako ti mogu pomoći?" }]
             };
             chats.unshift(newChat);
             activeChatId = newChat.id;
@@ -275,7 +280,7 @@
                 if (msg.mapQuery) {
                     const iframe = document.createElement("iframe");
                     iframe.className = "map-frame";
-                    iframe.src = `https://maps.google.com/maps?q=$${encodeURIComponent(msg.mapQuery)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+                    iframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(msg.mapQuery)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
                     div.appendChild(document.createElement("br"));
                     div.appendChild(iframe);
                 }
@@ -311,7 +316,7 @@
                 renderMessages();
 
                 setTimeout(() => {
-                    activeChat.messages.push({ sender: "bot", text: "Slika uspješno zaprimljena. Koja je daljnja uputa?" });
+                    activeChat.messages.push({ sender: "bot", text: "Slika uspješno zaprimljena!" });
                     saveChats();
                     renderMessages();
                 }, 500);
@@ -319,8 +324,8 @@
             reader.readAsDataURL(file);
         }
 
-        // LOKALNA LOGIKA ODGOVORA (BEZ MOGUĆNOSTI GREŠKE S POSLUŽITELJEM)
-        function sendMessage() {
+        // GLAVNA FUNKCIJA SA STABILNIM GEMINI API POZIVOM
+        async function sendMessage() {
             const input = document.getElementById("userInput");
             const text = input.value.trim();
             if (!text) return;
@@ -340,56 +345,76 @@
 
             const lowerText = text.toLowerCase();
             const now = new Date();
-            const timeString = now.toLocaleTimeString('hr-HR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const timeString = now.toLocaleTimeString('hr-HR', { hour: '2-digit', minute: '2-digit' });
             const dateString = now.toLocaleDateString('hr-HR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-            // 1. Pitanja za Vrijeme / Sat / Datum
+            // 1. Provjera za Vrijeme / Sat
             if (lowerText.includes("sat") || lowerText.includes("vrijeme") || lowerText.includes("vrime") || lowerText.includes("datum")) {
-                setTimeout(() => {
-                    activeChat.messages.push({ 
-                        sender: "bot", 
-                        text: `🕒 Točno vrijeme: ${timeString}\n📅 Datum: ${dateString}` 
-                    });
-                    saveChats();
-                    renderMessages();
-                }, 300);
+                activeChat.messages.push({ 
+                    sender: "bot", 
+                    text: `🕒 Točno vrijeme: ${timeString}\n📅 Datum: ${dateString}` 
+                });
+                saveChats();
+                renderMessages();
                 return;
             }
 
-            // 2. Pitanja za Lokaciju / Kartu / Karta
+            // 2. Provjera za Karte / Lokacije
             if (lowerText.includes("gdje se nalazi") || lowerText.includes("karta") || lowerText.includes("mapa") || lowerText.includes("lokacij")) {
                 let locationQuery = text.replace(/gdje se nalazi|otvori kartu|prikaži kartu|karta|mapa|lokacija/gi, "").trim();
                 if (!locationQuery) locationQuery = currentLocation;
 
-                setTimeout(() => {
-                    activeChat.messages.push({ 
-                        sender: "bot", 
-                        text: `📍 Otvaram kartu i prikazujem specifičnu lokaciju za: "${locationQuery}"`,
-                        mapQuery: locationQuery,
-                        actionBtns: [{
-                            label: "🗺️ Otvori u Google Maps Navigaciji",
-                            url: `https://www.google.com/maps/search/?api=1&query=$${encodeURIComponent(locationQuery)}`,
-                            isDownload: false
-                        }]
-                    });
-                    saveChats();
-                    renderMessages();
-                }, 300);
+                activeChat.messages.push({ 
+                    sender: "bot", 
+                    text: `📍 Otvaram kartu i prikazujem lokaciju za: "${locationQuery}"`,
+                    mapQuery: locationQuery,
+                    actionBtns: [{
+                        label: "🗺️ Otvori u Google Maps Navigaciji",
+                        url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationQuery)}`,
+                        isDownload: false
+                    }]
+                });
+                saveChats();
+                renderMessages();
                 return;
             }
 
-            // 3. Beskompromisni i direktni generički odgovori na ostala pitanja
-            setTimeout(() => {
-                let reply = `Jasno u potpunosti: "${text}". Analizirao sam zahtjev i spreman sam izvršiti daljnje korake ili prilagoditi funkcionalnost po tvojoj uputi.`;
+            // 3. AI POZIV PREKO GEMINI API-ja
+            const loadingId = Date.now();
+            activeChat.messages.push({ sender: "bot", text: "Razmišljam...", id: loadingId });
+            renderMessages();
+
+            // OVDJE UMETNI SVOJ PRAVI GEMINI API KLJUČ (umjesto ovog primjera)
+            const API_KEY = "TVOJ_GEMINI_API_KEY_OVDJE"; 
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: "Odgovaraj direktno, pametno i precizno na hrvatskom jeziku. Pitanje: " + text }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
                 
-                if (lowerText.includes("kako") || lowerText.includes("što") || lowerText.includes("sto")) {
-                    reply = `Na tvoje pitanje "${text}": Strategija je jasna i beskompromisna – fokusiramo se na najbrže, najčišće i najefikasnije rješenje bez gubljenja vremena. Sljedeći korak ovisi o tvojoj naredbi.`;
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    const aiReply = data.candidates[0].content.parts[0].text;
+                    activeChat.messages = activeChat.messages.filter(m => m.id !== loadingId);
+                    activeChat.messages.push({ sender: "bot", text: aiReply });
+                } else {
+                    throw new Error("API nije vratio ispravan sadržaj.");
                 }
 
-                activeChat.messages.push({ sender: "bot", text: reply });
-                saveChats();
-                renderMessages();
-            }, 400);
+            } catch (error) {
+                activeChat.messages = activeChat.messages.filter(m => m.id !== loadingId);
+                activeChat.messages.push({ sender: "bot", text: "Pogreška pri spajanju na AI. Provjerite jeste li upisali ispravan Gemini API ključ umjesto 'TVOJ_GEMINI_API_KEY_OVDJE'." });
+            }
+
+            saveChats();
+            renderMessages();
         }
 
         function buildWebPage() {
