@@ -2,160 +2,293 @@
 <html lang="hr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Website Generator - Agencija u kutiji</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>JARVIS Mobile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background: #090d16; color: #f1f5f9; display: flex; height: 100vh; overflow: hidden; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        .sidebar { width: 400px; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.08); padding: 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
-        .preview-area { flex: 1; background: #1e293b; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        
-        h2 { font-size: 1.2rem; color: #38bdf8; margin-bottom: 8px; }
-        .form-group { display: flex; flex-direction: column; gap: 6px; }
-        label { font-size: 0.85rem; color: #94a3b8; font-weight: 600; }
-        input, textarea { background: #1e293b; border: 1px solid rgba(255,255,255,0.12); padding: 10px 14px; border-radius: 8px; color: white; font-size: 0.95rem; outline: none; }
-        input:focus, textarea:focus { border-color: #38bdf8; }
-        
-        .gen-btn { background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; color: white; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 10px; font-size: 1rem; }
-        .gen-btn:hover { opacity: 0.9; }
-
-        /* Prikaz unutar okvira mobitela */
-        .phone-frame {
-            width: 380px;
-            height: 750px;
-            background: #000;
-            border: 10px solid #334155;
-            border-radius: 40px;
+        body, html {
+            height: 100dvh;
+            width: 100vw;
+            background-color: #090d16;
+            color: #f1f5f9;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
-        iframe { width: 100%; height: 100%; border: none; background: white; }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
         
-        .export-btn { background: #10b981; border: none; color: white; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 5px; }
+        .header {
+            padding: 12px 16px;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .header-right { display: flex; align-items: center; gap: 8px; position: relative; }
+        .menu-btn { background: none; border: none; color: #f1f5f9; font-size: 1.4rem; cursor: pointer; padding: 4px; }
+        .header-title { font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
+        .status-dot { width: 8px; height: 8px; background: #38bdf8; border-radius: 50%; box-shadow: 0 0 8px #38bdf8; }
+
+        .more-dropdown {
+            display: none;
+            position: absolute;
+            top: 45px;
+            right: 0;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            z-index: 50;
+            min-width: 190px;
+            overflow: hidden;
+        }
+        .dropdown-item {
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: #f1f5f9;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        .dropdown-item:hover, .dropdown-item:active { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+
+        .sidebar-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 20; }
+        .sidebar {
+            position: absolute; top: 0; left: -280px; width: 280px; height: 100%;
+            background: #0f172a; border-right: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 30; transition: left 0.3s ease; display: flex; flex-direction: column; padding: 16px;
+        }
+        .sidebar.open { left: 0; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+        .new-chat-btn { background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; color: white; padding: 10px; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 8px; }
+        .option-btn { background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.1); color: #38bdf8; padding: 10px; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 12px; text-align: left; font-size: 0.85rem; }
+        .chat-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .chat-item { background: rgba(30, 41, 59, 0.4); padding: 10px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; }
+        .chat-item.active { border-color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+        .chat-item-del { color: #ef4444; background: none; border: none; font-size: 0.9rem; cursor: pointer; padding: 2px 6px; }
+
+        .chat-box { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .msg { max-width: 88%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.45; word-wrap: break-word; }
+        .user-msg { align-self: flex-end; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
+        .bot-msg { align-self: flex-start; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); color: #e2e8f0; border-bottom-left-radius: 4px; white-space: pre-wrap; }
+
+        /* Modal za opcijski Generator */
+        .modal-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 100; padding: 20px; overflow-y: auto; }
+        .modal-card { background: #0f172a; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .modal-card input, .modal-card textarea { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; color: white; outline: none; font-size: 16px; }
+
+        .input-bar { padding: 10px 12px; background: #0f172a; border-top: 1px solid rgba(255, 255, 255, 0.08); flex-shrink: 0; }
+        .action-btns { display: flex; gap: 6px; align-items: center; }
+        input[type="text"] { flex: 1; height: 42px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.12); padding: 0 12px; border-radius: 12px; color: white; font-size: 16px; outline: none; }
+        .send-btn { background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; width: 42px; height: 42px; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; flex-shrink: 0; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <h2>⚡ AI Generator Web Stranica</h2>
-        <p style="font-size: 0.85rem; color: #94a3b8;">Upiši podatke o klijentu i generiraj demo u sekundi.</p>
-        
-        <div class="form-group">
-            <label>Naziv biznisa</label>
-            <input type="text" id="bizName" value="Frizerski Salon 'Stil'" placeholder="Npr. Restoran Bepo">
+    <div class="app-container">
+        <div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
+
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>JARVIS Meni</h3>
+                <button class="menu-btn" onclick="toggleMenu()">✕</button>
+            </div>
+            <button class="new-chat-btn" onclick="createNewChat()">+ Novi razgovor</button>
+            <button class="option-btn" onclick="openGenerator(); toggleMenu();">⚡ Opcija: Web Generator</button>
+            
+            <span style="font-size: 0.8rem; color: #94a3b8; margin: 8px 0 4px 0;">Povijest razgovora:</span>
+            <div class="chat-list" id="chatList"></div>
         </div>
 
-        <div class="form-group">
-            <label>Djelatnost / Niche</label>
-            <input type="text" id="bizNiche" value="Vrhunske muške i ženske frizure" placeholder="Npr. Tradicionalna dalmatinska konoba">
+        <div class="header">
+            <div class="header-left">
+                <button class="menu-btn" onclick="toggleMenu()">☰</button>
+                <div class="header-title">
+                    <div class="status-dot"></div>
+                    <span>JARVIS Mobile</span>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <button class="menu-btn" onclick="toggleMoreMenu(event)">⋮</button>
+                <div class="more-dropdown" id="moreDropdown">
+                    <div class="dropdown-item" onclick="createNewChat(); hideMoreMenu();">➕ Novi razgovor</div>
+                    <div class="dropdown-item" onclick="openGenerator(); hideMoreMenu();">⚡ Generator Stranica</div>
+                </div>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>Grad / Lokacija</label>
-            <input type="text" id="bizCity" value="Šibenik" placeholder="Npr. Šibenik">
+        <div class="chat-box" id="chatBox"></div>
+
+        <div class="input-bar">
+            <div class="action-btns">
+                <input type="text" id="userInput" placeholder="Pitaj bilo što ili daj naredbu..." onkeydown="if(event.key === 'Enter') sendMessage()">
+                <button class="send-btn" onclick="sendMessage()">➤</button>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>Telefon za kontakt</label>
-            <input type="text" id="bizPhone" value="+385 91 234 5678">
-        </div>
-
-        <div class="form-group">
-            <label>Glavna ponuda / Usluge (odvojeno zarezom)</label>
-            <textarea id="bizServices" rows="3">Moderno šišanje,Brijanje brade,Pramenovi i bojanje,Svečane frizure</textarea>
-        </div>
-
-        <button class="gen-btn" onclick="generateWebsite()">🚀 Generiraj Web Stranicu</button>
-        <button class="export-btn" onclick="downloadCode()">💾 Preuzmi HTML Kod</button>
-    </div>
-
-    <div class="preview-area">
-        <div class="phone-frame">
-            <iframe id="previewFrame"></iframe>
+        <div class="modal-overlay" id="genModal">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3 style="color: #38bdf8;">⚡ Generator Stranica</h3>
+                    <button class="menu-btn" onclick="closeGenerator()">✕</button>
+                </div>
+                <input type="text" id="bizName" placeholder="Naziv biznisa (npr. Frizerski Salon Stil)">
+                <input type="text" id="bizCity" placeholder="Grad (npr. Šibenik)">
+                <input type="text" id="bizPhone" placeholder="Telefon za kontakt">
+                <textarea id="bizServices" placeholder="Usluge (odvojeno zarezom)"></textarea>
+                <button class="new-chat-btn" onclick="buildWebPage()">Generiraj Kod</button>
+            </div>
         </div>
     </div>
 
     <script>
-        let generatedHtml = "";
+        let chats = [];
+        let activeChatId = null;
 
-        function generateWebsite() {
-            const name = document.getElementById("bizName").value;
-            const niche = document.getElementById("bizNiche").value;
-            const city = document.getElementById("bizCity").value;
-            const phone = document.getElementById("bizPhone").value;
-            const servicesRaw = document.getElementById("bizServices").value;
-            
-            const servicesArray = servicesRaw.split(",").map(s => `
-                <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 10px;">
-                    <h3 style="color: #38bdf8; font-size: 1rem; margin-bottom: 4px;">✔ ${s.trim()}</h3>
-                    <p style="font-size: 0.8rem; color: #94a3b8;">Vrhunska usluga prilagođena vašim željama uz profesionalnu opremu.</p>
-                </div>
-            `).join("");
+        window.onload = function() { loadChats(); };
 
-            generatedHtml = `<!DOCTYPE html>
-<html lang="hr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${name} - ${city}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background: #0f172a; color: #f1f5f9; line-height: 1.5; }
-        header { background: linear-gradient(135deg, #0284c7, #2563eb); padding: 40px 20px; text-align: center; }
-        header h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; color: white; }
-        header p { font-size: 0.95rem; color: #e0f2fe; }
-        .container { padding: 20px; max-width: 600px; margin: 0 auto; }
-        .section-title { font-size: 1.2rem; font-weight: 700; margin: 20px 0 10px 0; color: #38bdf8; border-left: 4px solid #38bdf8; padding-left: 10px; }
-        .cta-btn { display: block; width: 100%; background: #22c55e; color: white; text-align: center; padding: 14px; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 1.1rem; margin-top: 25px; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
-        footer { text-align: center; padding: 20px; font-size: 0.75rem; color: #64748b; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 30px; }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>${name}</h1>
-        <p>${niche} u gradu ${city}</p>
-    </header>
-    <div class="container">
-        <div class="section-title">Naše Usluge</div>
-        ${servicesArray}
-        
-        <div class="section-title">Kontaktirajte nas</div>
-        <p style="margin-bottom: 10px; font-size: 0.9rem;">Nalazimo se u ${city}-u. Nazovite nas i rezervirajte svoj termin na vrijeme.</p>
-        
-        <a href="tel:${phone}" class="cta-btn">📞 Nazovite odmah: ${phone}</a>
-    </div>
-    <footer>
-        &copy; ${new Date().getFullYear()} ${name}. Sva prava pridržana.
-    </footer>
-</body>
-</html>`;
+        function toggleMoreMenu(e) {
+            e.stopPropagation();
+            const drop = document.getElementById("moreDropdown");
+            drop.style.display = drop.style.display === "block" ? "none" : "block";
+        }
+        function hideMoreMenu() { document.getElementById("moreDropdown").style.display = "none"; }
+        document.addEventListener("click", hideMoreMenu);
 
-            // Prikaz u iframe-u unutar "mobitela"
-            const iframe = document.getElementById("previewFrame");
-            iframe.srcdoc = generatedHtml;
+        function toggleMenu() {
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.getElementById("overlay");
+            const isOpen = sidebar.classList.contains("open");
+            sidebar.classList.toggle("open", !isOpen);
+            overlay.style.display = isOpen ? "none" : "block";
         }
 
-        function downloadCode() {
-            if (!generatedHtml) {
-                alert("Prvo generiraj stranicu!");
-                return;
+        function openGenerator() { document.getElementById("genModal").style.display = "block"; }
+        function closeGenerator() { document.getElementById("genModal").style.display = "none"; }
+
+        function loadChats() {
+            const saved = localStorage.getItem("jarvis_chats");
+            chats = saved ? JSON.parse(saved) : [];
+            if (chats.length === 0) createNewChat();
+            else { activeChatId = chats[0].id; renderChatList(); renderMessages(); }
+        }
+
+        function saveChats() { localStorage.setItem("jarvis_chats", JSON.stringify(chats)); }
+
+        function createNewChat() {
+            const newChat = {
+                id: Date.now().toString(),
+                title: "Novi razgovor",
+                messages: [{ sender: "bot", text: "Bok! Ovdje sam za sva tvoja pitanja, kodiranje i svakodnevne zadatke. Što te zanima?" }]
+            };
+            chats.unshift(newChat);
+            activeChatId = newChat.id;
+            saveChats();
+            renderChatList();
+            renderMessages();
+            if (document.getElementById("sidebar").classList.contains("open")) toggleMenu();
+        }
+
+        function switchChat(id) { activeChatId = id; renderChatList(); renderMessages(); toggleMenu(); }
+
+        function deleteChat(id, event) {
+            event.stopPropagation();
+            chats = chats.filter(c => c.id !== id);
+            if (chats.length === 0) createNewChat();
+            else { if (activeChatId === id) activeChatId = chats[0].id; saveChats(); renderChatList(); renderMessages(); }
+        }
+
+        function renderChatList() {
+            const listEl = document.getElementById("chatList");
+            listEl.innerHTML = "";
+            chats.forEach(chat => {
+                const div = document.createElement("div");
+                div.className = `chat-item ${chat.id === activeChatId ? 'active' : ''}`;
+                div.onclick = () => switchChat(chat.id);
+                div.innerHTML = `<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">${chat.title}</span>
+                                 <button class="chat-item-del" onclick="deleteChat('${chat.id}', event)">✕</button>`;
+                listEl.appendChild(div);
+            });
+        }
+
+        function renderMessages() {
+            const chatBox = document.getElementById("chatBox");
+            chatBox.innerHTML = "";
+            const activeChat = chats.find(c => c.id === activeChatId);
+            if (!activeChat) return;
+
+            activeChat.messages.forEach(msg => {
+                const div = document.createElement("div");
+                div.className = `msg ${msg.sender === 'user' ? 'user-msg' : 'bot-msg'}`;
+                div.textContent = msg.text;
+                chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        /* Normalno slanje poruka i odgovaranje */
+        async function sendMessage() {
+            const input = document.getElementById("userInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            const activeChat = chats.find(c => c.id === activeChatId);
+            if (!activeChat) return;
+
+            if (activeChat.messages.length <= 1) {
+                activeChat.title = text.substring(0, 20) + "...";
+                renderChatList();
             }
-            const blob = new Blob([generatedHtml], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "index.html";
-            a.click();
-            URL.revokeObjectURL(url);
+
+            activeChat.messages.push({ sender: "user", text: text });
+            saveChats();
+            renderMessages();
+            input.value = "";
+
+            // Ovdje JARVIS normalno odgovara preko tvog API-ja (Render/FastAPI)
+            try {
+                const res = await fetch("/api/jarvis", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: text })
+                });
+                const data = await res.json();
+                activeChat.messages.push({ sender: "bot", text: data.reply || "Odgovor je spreman." });
+            } catch(e) {
+                // Generički fallback ako nema poslužitelja
+                activeChat.messages.push({ sender: "bot", text: "Razumio sam: " + text + ". Spreman sam za sljedeće pitanje!" });
+            }
+            saveChats();
+            renderMessages();
         }
 
-        // Automatsko generiranje na pokretanje
-        window.onload = generateWebsite;
+        function buildWebPage() {
+            const name = document.getElementById("bizName").value || "Biznis";
+            closeGenerator();
+            const activeChat = chats.find(c => c.id === activeChatId);
+            activeChat.messages.push({ sender: "bot", text: `⚡ Generirao sam web stranicu za "${name}". Kod možeš preuzeti ili urediti po želji.` });
+            saveChats();
+            renderMessages();
+        }
     </script>
 </body>
 </html>
