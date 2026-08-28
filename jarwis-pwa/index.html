@@ -65,13 +65,12 @@
         <div class="chat-box" id="chatBox"></div>
 
         <div class="input-bar">
-            <input type="text" id="userInput" placeholder="Napiši poruku..." onkeydown="if(event.key === 'Enter') sendMessage()">
+            <input type="text" id="userInput" placeholder="Napiši poruku E.G.O-u..." onkeydown="if(event.key === 'Enter') sendMessage()">
             <button class="send-btn" onclick="sendMessage()">➤</button>
         </div>
     </div>
 
     <script>
-        // TVOJ UGRAĐENI GEMINI API KLJUČ
         const API_KEY = "AQ.Ab8RN6I3nQkNqugd47K50fUxVd3j6j79c59Qe0YxDDNF-gM8UA"; 
 
         let messages = [];
@@ -81,7 +80,7 @@
             if (saved) {
                 messages = JSON.parse(saved);
             } else {
-                messages = [{ sender: "bot", text: "E.G.O je aktivan i spreman za rad. Kako ti mogu pomoći?" }];
+                messages = [{ sender: "bot", text: "E.G.O je aktivan. Slušam." }];
             }
             renderMessages();
         };
@@ -91,7 +90,7 @@
         }
 
         function clearChat() {
-            messages = [{ sender: "bot", text: "Chat je očišćen. Slušam." }];
+            messages = [{ sender: "bot", text: "E.G.O je ponovno pokrenut. Slušam." }];
             saveMessages();
             renderMessages();
         }
@@ -125,23 +124,22 @@
             renderMessages();
 
             try {
-                const contents = messages
-                    .filter(m => m.id !== loadingId)
-                    .map(m => ({
-                        role: m.sender === "user" ? "user" : "model",
-                        parts: [{ text: m.text }]
-                    }));
+                let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+                let headers = { "Content-Type": "application/json" };
 
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+                if (API_KEY.startsWith("AIzaSy")) {
+                    url += `?key=${API_KEY}`;
+                } else {
+                    headers["Authorization"] = `Bearer ${API_KEY}`;
+                }
 
                 const response = await fetch(url, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: headers,
                     body: JSON.stringify({
-                        systemInstruction: {
-                            parts: [{ text: "Tvoje ime je E.G.O. Korisniku odgovaraj izravno, pametno i precizno na hrvatskom jeziku." }]
-                        },
-                        contents: contents
+                        contents: [{
+                            parts: [{ text: "Tvoje ime je E.G.O. Odgovaraj izravno, pametno i precizno na hrvatskom jeziku. Korisnikova poruka: " + text }]
+                        }]
                     })
                 });
 
@@ -152,14 +150,14 @@
                     const reply = data.candidates[0].content.parts[0].text;
                     messages.push({ sender: "bot", text: reply });
                 } else if (data.error) {
-                    messages.push({ sender: "bot", text: `API Greška (${data.error.code}): ${data.error.message}` });
+                    messages.push({ sender: "bot", text: `Google API Greška (${data.error.code}): ${data.error.message}` });
                 } else {
-                    messages.push({ sender: "bot", text: "Došlo je do pogreške pri obradi odgovora." });
+                    messages.push({ sender: "bot", text: "E.G.O sustav: Nepoznata pogreška pri čitanju odgovora." });
                 }
 
             } catch (error) {
                 messages = messages.filter(m => m.id !== loadingId);
-                messages.push({ sender: "bot", text: "Greška pri spajanju na mrežu." });
+                messages.push({ sender: "bot", text: "E.G.O sustav: Problem s mrežom ili spajanjem na poslužitelj." });
             }
 
             saveMessages();
